@@ -3,28 +3,32 @@
 #include <initializer_list>
 #include <cassert>
 #include <cstdint>
+#include <type_traits>
+
 #include "dense_view.h"
 #include "types.h"
+#include "layout.h"
 
 #include <Eigen/Dense>
 
 namespace mx {
 
-template<typename T>
+template<typename T, class Layout = RowMajor>
 class Dense {
     index_t _rows{0};
     index_t _cols{0};
     index_t _size{0}; 
     std::vector<T> _data;
-    
-    [[nodiscard]] index_t rm_idx(index_t i, index_t j) const noexcept {
-        assert(i >= 0 && i < _rows && j >= 0 && j < _cols);
-        return j + _cols * i;
-    }
 
-    [[nodiscard]] index_t cm_idx(index_t i, index_t j) const noexcept {
+    static constexpr bool row_major = std::is_same_v<Layout, RowMajor>;
+
+    [[nodiscard]] index_t idx(index_t i, index_t j) const noexcept {
         assert(i >= 0 && i < _rows && j >= 0 && j < _cols);
-        return i + _rows * j;
+        if constexpr (row_major) {
+            return j + _cols * i;
+        } else { // ColMajor
+            return i + _rows * j;
+        }
     }
 
 public:
@@ -49,15 +53,15 @@ public:
 
     [[nodiscard]] T& operator()(index_t i, index_t j) noexcept {
         assert(i >= 0 && i < _rows && j >= 0 && j < _cols);
-        return _data[rm_idx(i,j)];
+        return _data[idx(i,j)];
     }
     
     [[nodiscard]] const T& operator()(index_t i, index_t j) const noexcept {
         assert(i >= 0 && i < _rows && j >= 0 && j < _cols);
-        return _data[rm_idx(i,j)];
+        return _data[idx(i,j)];
     }
 
-    bool operator==(const Dense<T>& other) const noexcept {
+    bool operator==(const Dense& other) const noexcept {
         if(_size != other._size) return false;
 
         for(index_t idx = 0; idx < _size; idx++) {
@@ -75,8 +79,8 @@ public:
     const T* data() const noexcept { return _data.data(); }
 
     // Expose row-major view
-    DenseView<T>       view() noexcept       { return DenseView<T>(_data.data(), _rows, _cols); }
-    DenseView<const T> view() const noexcept { return DenseView<const T>(_data.data(), _rows, _cols); }
+    DenseView<T,Layout>       view() noexcept       { return DenseView<T,Layout>(_data.data(), _rows, _cols); }
+    DenseView<const T,Layout> view() const noexcept { return DenseView<const T,Layout>(_data.data(), _rows, _cols); }
 
     // Iterator support
     T*       begin() noexcept { return _data.data(); }
@@ -86,12 +90,18 @@ public:
     const T* end() const noexcept { return _data.data() + _size; }
 
     // Element pointer access
-    T*       at(index_t i, index_t j) noexcept       { return _data.data() + rm_idx(i,j); }
-    const T* at(index_t i, index_t j) const noexcept { return _data.data() + rm_idx(i,j); }
+    T*       at(index_t i, index_t j) noexcept       { return _data.data() + idx(i,j); }
+    const T* at(index_t i, index_t j) const noexcept { return _data.data() + idx(i,j); }
+
+    // Fill the dense matrix with a specific value
+    void fill(const T& value){
+        std::fill(_data.begin(), _data.end(), value);
+    }
 
     // MX -> Eigen conversion
     auto to_eigen() const {
-        Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> eigenMatrix(_rows, _cols);
+        using MatType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, row_major ? Eigen::RowMajor : Eigen::ColMajor>;
+        MatType eigenMatrix(_rows, _cols);
         std::copy(_data.begin(), _data.end(), eigenMatrix.data());
         return eigenMatrix;
     }

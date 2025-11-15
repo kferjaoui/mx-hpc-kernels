@@ -2,12 +2,15 @@
 #include <array>
 #include <cassert>
 #include <cstdint>
+#include <type_traits>
+
 #include "types.h"
+#include "layout.h"
 
 #include <Eigen/Dense>
 namespace mx {
     
-template<typename T>
+template<typename T, class Layout = RowMajor>
 class DenseView {
     index_t _rows{0};
     index_t _cols{0};
@@ -15,18 +18,14 @@ class DenseView {
     std::array<index_t, 2> _strides{0, 0};
     T* _buffer{nullptr};
 
-public:
-    DenseView() = default;
+    static constexpr bool row_major = std::is_same_v<Layout, RowMajor>;
 
-    // Contiguous row-major layout (standard)
-    DenseView(T* ptr, index_t rows, index_t cols): 
-        _buffer(ptr), _rows(rows), _cols(cols), _size(rows*cols), _strides{cols, 1}
-    {
-        assert(rows >= 0 && cols >= 0);
-        assert(ptr != nullptr || (rows == 0 && cols == 0));
+    [[nodiscard]] index_t idx(index_t i, index_t j) const noexcept {
+        assert(i >= 0 && i < _rows && j >= 0 && j < _cols);
+        return _strides[0] * i + _strides[1] * j;
     }
 
-    // General strided layout
+    // Put this constructor as private to avoid misuse (used internally only)
     DenseView(T* ptr, index_t rows, index_t cols, index_t row_stride, index_t col_stride): 
         _buffer(ptr), _rows(rows), _cols(cols), _size(rows*cols), _strides{row_stride, col_stride} 
     {
@@ -35,10 +34,27 @@ public:
         assert(ptr != nullptr || (rows == 0 && cols == 0));
     }
 
+public:
+    DenseView() = default;
+    DenseView(const DenseView& other) = default; // default copy constructor
+
+    // Contiguous  
+    DenseView(T* ptr, index_t rows, index_t cols): 
+        _buffer(ptr), _rows(rows), _cols(cols), _size(rows*cols)
+    {
+        assert(rows >= 0 && cols >= 0);
+        assert(ptr != nullptr || (rows == 0 && cols == 0));
+        if constexpr (row_major) {
+            _strides = {cols, 1};
+        } else {
+            _strides = {1, rows};
+        }
+    }
+
     // To allow conversion of DenseView<T> to DenseView<const T>
     template<typename U>
     requires std::convertible_to<U*, T*> && (!std::same_as<U, const U>)
-    DenseView(const DenseView<U>& other)
+    DenseView(const DenseView<U, Layout>& other)
         : _rows(other.rows()), 
           _cols(other.cols()),
           _size(other.size()),
@@ -48,23 +64,23 @@ public:
 
     T& operator()(index_t i, index_t j) noexcept {
         assert(i >= 0 && i < _rows && j >= 0 && j < _cols);
-        return _buffer[_strides[0] * i + _strides[1] * j];
+        return _buffer[idx(i,j)];
     }
 
     const T& operator()(index_t i, index_t j) const noexcept {
         assert(i >= 0 && i < _rows && j >= 0 && j < _cols);
-        return _buffer[_strides[0] * i + _strides[1] * j];
+        return _buffer[idx(i,j)];
     }
 
     // Create subview maintaining parent strides
-    DenseView subview(index_t i0, index_t j0, index_t n_rows, index_t n_cols) const noexcept {
+    [[nodiscard]] DenseView subview(index_t i0, index_t j0, index_t n_rows, index_t n_cols) const noexcept {
         assert(i0 >= 0 && j0 >= 0);
         assert(i0 + n_rows <= _rows && j0 + n_cols <= _cols);
-        return DenseView(_buffer + _strides[0] * i0 + _strides[1] * j0, n_rows, n_cols, _strides[0], _strides[1]); 
+        return DenseView(_buffer + idx(i0,j0), n_rows, n_cols, _strides[0], _strides[1]); 
     }
     
     // Transposed view (swap dimensions and strides)
-    DenseView transposed() const noexcept { 
+    [[nodiscard]] DenseView transposed() const noexcept { 
         return DenseView(_buffer, _cols, _rows, _strides[1], _strides[0]); 
     }
 
@@ -75,11 +91,13 @@ public:
     [[nodiscard]] index_t row_stride() const noexcept { return _strides[0]; }
     [[nodiscard]] index_t col_stride() const noexcept { return _strides[1]; }
     
-    // Leading dimension
-    // For row-major: LDA = row_stride
-    // For col-major: LDA = col_stride
-    [[nodiscard]] index_t leading_dim() const noexcept { 
-        return _strides[0];  // Row-major assumption
+    // Leading dimension (BLAS style)
+    [[nodiscard]] index_t leading_dim() const noexcept {
+        if (row_major) {
+            return _strides[0]; // For row-major: LDA = row_stride
+        } else {
+            return _strides[1]; // For col-major: LDA = col_stride
+        }
     }
 
     // Direct buffer access
@@ -96,22 +114,27 @@ public:
     // Element pointer access
     T* at(index_t i, index_t j) noexcept {
         assert(i >= 0 && i < _rows && j >= 0 && j < _cols);
-        return _buffer + _strides[0] * i + _strides[1] * j;
+        return _buffer + idx(i,j);
     }
     
     const T* at(index_t i, index_t j) const noexcept {
         assert(i >= 0 && i < _rows && j >= 0 && j < _cols);
-        return _buffer + _strides[0] * i + _strides[1] * j;
+        return _buffer + idx(i,j);
     }
 
     // Check if view is contiguous in memory
     [[nodiscard]] bool is_contiguous() const noexcept {
-        return (_strides[0] == _cols && _strides[1] == 1);  // Row-major contiguous
+        if (row_major) {
+            return (_strides[0] == _cols && _strides[1] == 1);
+        } else {
+            return (_strides[0] == 1 && _strides[1] == _rows);
+        }
     }
 
     // MX -> Eigen conversion
     auto to_eigen() const {
-        Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> eigenMatrix(_rows, _cols);
+        using MatType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, row_major ? Eigen::RowMajor : Eigen::ColMajor>;
+        MatType eigenMatrix(_rows, _cols);
 
         if(is_contiguous()){
             std::copy(_buffer, _buffer + _size, eigenMatrix.data());

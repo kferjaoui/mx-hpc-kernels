@@ -8,9 +8,9 @@
 
 namespace mx{
 
-template<typename T>
+template<typename T, class Layout>
 [[nodiscard]] constexpr 
-LUInfo lu_factor_unblocked(DenseView<T> LU, std::vector<index_t>& piv){
+LUInfo lu_factor_unblocked(DenseView<T, Layout> LU, std::vector<index_t>& piv){
     const index_t N = LU.rows();
     const index_t M = LU.cols(); 
     const index_t K = std::min(N, M);
@@ -37,7 +37,7 @@ LUInfo lu_factor_unblocked(DenseView<T> LU, std::vector<index_t>& piv){
         piv[k] = i_pivot;
 
         // 2. swap full rows
-        if (i_pivot != k) row_swap_full(LU, k, i_pivot);
+        if (i_pivot != k) swap_full_row(LU, k, i_pivot);
 
         // 3. guard against zero; TODO: near-zero pivot
         const T akk = LU(k,k);

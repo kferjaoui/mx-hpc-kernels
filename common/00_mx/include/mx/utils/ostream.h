@@ -5,8 +5,8 @@
 
 namespace mx{
 
-template<typename T>
-std::ostream& operator<<(std::ostream& os, const Dense<T>& Matrix){
+template<typename T, class Layout>
+std::ostream& operator<<(std::ostream& os, const Dense<T, Layout>& Matrix){
     const index_t r = Matrix.rows(), c = Matrix.cols();
     os << "[\n";
     for(index_t i = 0; i < r; ++i){   
@@ -23,8 +23,8 @@ std::ostream& operator<<(std::ostream& os, const Dense<T>& Matrix){
     return os;
 }
 
-template<typename T>
-std::ostream& operator<<(std::ostream& os, const DenseView<T>& MatrixView){
+template<typename T, class Layout>
+std::ostream& operator<<(std::ostream& os, const DenseView<T, Layout>& MatrixView){
     const index_t r = MatrixView.rows(), c = MatrixView.cols();
     os << "[\n";
     for(index_t i = 0; i < r; ++i){   

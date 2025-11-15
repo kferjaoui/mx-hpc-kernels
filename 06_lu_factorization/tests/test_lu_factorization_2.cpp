@@ -11,7 +11,7 @@
 using Matrix = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 using VectorXi = Eigen::VectorXi;
 
-int main(){
+int main(){ 
     // B is a singular matrix i.e. rank deficient
     // N.B: 
     // In this example, I have tested with non-owning views (DenseView),

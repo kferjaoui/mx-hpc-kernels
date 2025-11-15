@@ -8,8 +8,8 @@ namespace mx{
 
 // Forward solve: L is unit-lower, stored in strict lower part of LU
 // Find Y for L * Y = B (Y stored in-place in B)
-template<typename T>
-inline void forward_substitution_unit_lower(const DenseView<T> LU, const std::vector<index_t>& piv, DenseView<T> B){
+template<typename T, class Layout>
+inline void forward_substitution_unit_lower(const DenseView<T, Layout> LU, const std::vector<index_t>& piv, DenseView<T, Layout> B){
     const index_t N = LU.rows(); // In general, L is of size N x N; and Y is of size (N,1)
 
     const index_t Mrhs = B.cols(); // if Mrhs=1: solving 1 system | if Mrhs>1: solving multiple linear systems at once
@@ -28,8 +28,8 @@ inline void forward_substitution_unit_lower(const DenseView<T> LU, const std::ve
 
 // Backward solve: U is upper triangular, stored in upper part of LU (inclusing diagonal)
 // // Find X for U * X = B (X stored in-place in B) 
-template<typename T>
-inline LUStatus backward_substitution_upper(const DenseView<T> LU, DenseView<T> B){
+template<typename T, class Layout>
+inline LUStatus backward_substitution_upper(const DenseView<T, Layout> LU, DenseView<T, Layout> B){
     const index_t N = LU.rows(); 
     const index_t M = LU.cols(); // In general, U is of size N x M; and X is of size (N,1)
     const index_t K = std::min(N,M);
@@ -57,8 +57,8 @@ inline LUStatus backward_substitution_upper(const DenseView<T> LU, DenseView<T> 
   
 }
 
-template<typename T>
-[[nodiscard]] LUInfo lu_solve(const DenseView<T> LU, const std::vector<index_t>& piv, DenseView<T> B){
+template<typename T, class Layout>
+[[nodiscard]] LUInfo lu_solve(const DenseView<T, Layout> LU, const std::vector<index_t>& piv, DenseView<T, Layout> B){
 
     const index_t N = LU.rows();
     const index_t M = LU.cols(); 

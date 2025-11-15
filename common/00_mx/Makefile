@@ -1,6 +1,6 @@
 CXX      := g++
 CXXFLAGS := -O3 -std=c++20 -Wall -Wextra -Wpedantic
-INC      := -Iinclude -MMD -MP
+INC      := -Iinclude -I../../third_party/eigen -MMD -MP
 
 TEST_SRCS := $(wildcard tests/*.cpp)
 OBJS      := $(patsubst tests/%.cpp,build/%.o,$(TEST_SRCS))
