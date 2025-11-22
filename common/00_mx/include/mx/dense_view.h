@@ -93,7 +93,7 @@ public:
     
     // Leading dimension (BLAS style)
     [[nodiscard]] index_t leading_dim() const noexcept {
-        if (row_major) {
+        if constexpr (row_major) {
             return _strides[0]; // For row-major: LDA = row_stride
         } else {
             return _strides[1]; // For col-major: LDA = col_stride
@@ -124,7 +124,7 @@ public:
 
     // Check if view is contiguous in memory
     [[nodiscard]] bool is_contiguous() const noexcept {
-        if (row_major) {
+        if constexpr (row_major) {
             return (_strides[0] == _cols && _strides[1] == 1);
         } else {
             return (_strides[0] == 1 && _strides[1] == _rows);

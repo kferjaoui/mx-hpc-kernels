@@ -7,19 +7,19 @@
 
 namespace mx{
 
-template<typename T>
-void gemm_cpu_cache_blocked(const Dense<T>& A, const Dense<T>& B, Dense<T>& C){
+template<typename T, class Layout>
+void gemm_cpu_cache_blocked(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C){
     gemm_cpu_cache_blocked(A.view(), B.view(), C.view());
 }
 
-template<typename T>
-void gemm_cpu_threads_cache_blocked(const Dense<T>& A, const Dense<T>& B, Dense<T>& C, index_t numThreads){
+template<typename T, class Layout>
+void gemm_cpu_threads_cache_blocked(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C, index_t numThreads){
     gemm_cpu_threads_cache_blocked(A.view(), B.view(), C.view(), numThreads);
 }
 
 
-template<typename T>
-void gemm_cpu_cache_blocked(DenseView<const T> A, DenseView<const T> B, DenseView<T> C){
+template<typename T, class Layout>
+void gemm_cpu_cache_blocked(DenseView<const T, Layout> A, DenseView<const T, Layout> B, DenseView<T, Layout> C){
     const index_t N = A.rows();
     const index_t K = A.cols();
     const index_t M = B.cols();
@@ -27,7 +27,7 @@ void gemm_cpu_cache_blocked(DenseView<const T> A, DenseView<const T> B, DenseVie
     assert(K == B.rows() && N == C.rows() && M == C.cols());
     if (N == 0 || M == 0 || K == 0) return;
 
-    Dense<T> BT(M, K);
+    Dense<T, Layout> BT(M, K);
     for(index_t r=0; r<K; r++){
         for(index_t c=0; c<M; c++){
             BT(c,r) = B(r,c); 
@@ -36,7 +36,7 @@ void gemm_cpu_cache_blocked(DenseView<const T> A, DenseView<const T> B, DenseVie
 
     const index_t nc = 256; // rows of A/C per block
     const index_t kc = 256; // depth of A/B per block
-    const index_t mc = 256; // columns of B/C per block
+    const index_t mc = 96; // columns of B/C per block
 
     index_t Nb = (N + nc - 1) / nc; // number of row blocks 
     index_t Kb = (K + kc - 1) / kc; // number of depth blocks
@@ -70,8 +70,8 @@ void gemm_cpu_cache_blocked(DenseView<const T> A, DenseView<const T> B, DenseVie
 
 }
 
-template<typename T>
-void gemm_cpu_threads_cache_blocked(DenseView<const T> A, DenseView<const T> B, DenseView<T> C, index_t numThreads = 8){
+template<typename T, class Layout>
+void gemm_cpu_threads_cache_blocked(DenseView<const T, Layout> A, DenseView<const T, Layout> B, DenseView<T, Layout> C, index_t numThreads = 8){
     const index_t N = A.rows();
     const index_t K = A.cols();
     const index_t M = B.cols();
@@ -79,7 +79,7 @@ void gemm_cpu_threads_cache_blocked(DenseView<const T> A, DenseView<const T> B, 
     assert(K == B.rows() && N == C.rows() && M == C.cols());
     if (N == 0 || M == 0 || K == 0) return;
 
-    Dense<T> BT(M, K);
+    Dense<T, Layout> BT(M, K);
     for(index_t r=0; r<K; r++){
         for(index_t c=0; c<M; c++){
             BT(c,r) = B(r,c); 
@@ -88,7 +88,7 @@ void gemm_cpu_threads_cache_blocked(DenseView<const T> A, DenseView<const T> B, 
 
     const index_t nc = 256; // rows of A/C per block
     const index_t kc = 256; // depth of A/B per block
-    const index_t mc = 128; // columns of B/C per block
+    const index_t mc = 96; // columns of B/C per block
 
     index_t Nb = (N + nc - 1) / nc; // number of row blocks 
     index_t Kb = (K + kc - 1) / kc; // number of depth blocks
@@ -134,7 +134,7 @@ void gemm_cpu_threads_cache_blocked(DenseView<const T> A, DenseView<const T> B, 
         }     
     };
 
-    std::cout << "Spawning "<< numThreads << " concurrent threads...\n";
+    std::cout << "[Blocked //] Spawning "<< numThreads << " concurrent threads...\n";
 
     for(index_t tid=0; tid<numThreads; tid++){
         threads.emplace_back(workFunction, tid);

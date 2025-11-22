@@ -23,7 +23,7 @@ void gemm_cpu_threads_microtiles(DenseView<const T> A, DenseView<const T> B, Den
 
     const index_t nc = 256; // rows of A/C per block
     const index_t kc = 256; // depth of A/B per block
-    const index_t mc = 128; // columns of B/C per block
+    const index_t mc = 96; // columns of B/C per block
 
     index_t Nb = (N + nc - 1) / nc; // number of row blocks 
     index_t Kb = (K + kc - 1) / kc; // number of depth blocks
@@ -128,7 +128,7 @@ void gemm_cpu_threads_microtiles(DenseView<const T> A, DenseView<const T> B, Den
         }   
     };
 
-    std::cout << "Spawning "<< numThreads << " concurrent threads...\n";
+    std::cout << "[Tiled //] Spawning "<< numThreads << " concurrent threads...\n";
 
     for(index_t tid=0; tid<numThreads; tid++){
         threads.emplace_back(workFunction, tid);
