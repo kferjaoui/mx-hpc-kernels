@@ -19,6 +19,7 @@ class DenseView {
     T* _buffer{nullptr};
 
     static constexpr bool row_major = std::is_same_v<Layout, RowMajor>;
+    using OppositeLayout = std::conditional_t<row_major, ColMajor, RowMajor>;
 
     [[nodiscard]] index_t idx(index_t i, index_t j) const noexcept {
         assert(i >= 0 && i < _rows && j >= 0 && j < _cols);
@@ -72,16 +73,34 @@ public:
         return _buffer[idx(i,j)];
     }
 
+    // Public compile-time constant
+    static constexpr bool is_row_major = row_major;
+    static constexpr bool is_col_major = !row_major;
+
     // Create subview maintaining parent strides
-    [[nodiscard]] DenseView subview(index_t i0, index_t j0, index_t n_rows, index_t n_cols) const noexcept {
+    [[nodiscard]] DenseView<const T, Layout> subview(index_t i0, index_t j0, index_t n_rows, index_t n_cols) const noexcept {
         assert(i0 >= 0 && j0 >= 0);
         assert(i0 + n_rows <= _rows && j0 + n_cols <= _cols);
         return DenseView(_buffer + idx(i0,j0), n_rows, n_cols, _strides[0], _strides[1]); 
     }
     
     // Transposed view (swap dimensions and strides)
-    [[nodiscard]] DenseView transposed() const noexcept { 
+    [[nodiscard]] DenseView<T, Layout> transpose_same_layout() noexcept { 
         return DenseView(_buffer, _cols, _rows, _strides[1], _strides[0]); 
+    }
+
+    [[nodiscard]] DenseView<const T, Layout> transpose_same_layout() const noexcept { 
+        return DenseView(_buffer, _cols, _rows, _strides[1], _strides[0]); 
+    }
+
+    [[nodiscard]] DenseView<T, OppositeLayout> transpose() noexcept {
+        assert(is_contiguous() && "Transpose requires contiguous view");
+        return DenseView<T, OppositeLayout>(_buffer, _cols, _rows);
+    }
+
+    [[nodiscard]] DenseView<const T, OppositeLayout> transpose() const noexcept {
+        assert(is_contiguous() && "Transpose requires contiguous view");
+        return DenseView<const T, OppositeLayout>(_buffer, _cols, _rows);
     }
 
     // Accessors

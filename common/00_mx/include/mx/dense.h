@@ -21,6 +21,7 @@ class Dense {
     std::vector<T> _data;
 
     static constexpr bool row_major = std::is_same_v<Layout, RowMajor>;
+    using OppositeLayout = std::conditional_t<row_major, ColMajor, RowMajor>;
 
     [[nodiscard]] index_t idx(index_t i, index_t j) const noexcept {
         assert(i >= 0 && i < _rows && j >= 0 && j < _cols);
@@ -69,6 +70,31 @@ public:
         }
 
         return true;
+    }
+
+    // Public compile-time constant
+    static constexpr bool is_row_major = row_major;
+    static constexpr bool is_col_major = !row_major;
+
+    // Zero-copy tranpose with same buffer but inversed layout
+    // 1. Lightweight expression/view (CHEAP)
+    [[nodiscard]] DenseView<T, OppositeLayout> transpose() noexcept {
+        return DenseView<T, OppositeLayout>(_data.data(), _cols, _rows);
+    }
+    
+    [[nodiscard]] DenseView<const T, OppositeLayout> transpose() const noexcept {
+        return DenseView<const T, OppositeLayout>(_data.data(), _cols, _rows);
+    }
+    
+    // 2. Explicit materialization (EXPENSIVE)
+    [[nodiscard]] Dense<T, Layout> transpose_copy() const {
+        Dense<T, Layout> result(_cols, _rows);
+        for(index_t i = 0; i < _rows; i++) {
+            for(index_t j = 0; j < _cols; j++) {
+                result(j, i) = (*this)(i, j);
+            }
+        }
+        return result;
     }
 
     [[nodiscard]] index_t rows() const noexcept { return _rows; }

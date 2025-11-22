@@ -1,5 +1,5 @@
 CXX      := g++
-CXXFLAGS := -O3 -std=c++20 -Wall -Wextra -Wpedantic
+CXXFLAGS := -O3 -std=c++20 #-Wall -Wextra -Wpedantic
 INC      := -Iinclude -I../../third_party/eigen -MMD -MP
 
 TEST_SRCS := $(wildcard tests/*.cpp)

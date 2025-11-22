@@ -17,11 +17,11 @@ int main()
     std::cout << "A = \n" << A << "\n";
     std::cout << "B = \n" << B << "\n";
     
-    auto A_view = A.view();
-    auto B_view = B.view();
-    
-    std::cout << "Transposed of A = \n" << A_view.transposed() << "\n";
-    std::cout << "Subview of B from element (3,2) of size [5,2] = \n" << B_view.subview(3,2,5,2) << "\n";
+    std::cout << "Transposed of A = \n" << A.view().transpose() << "\n";
+    std::cout << "Transposed of A (copy) = \n" << A.transpose_copy() << "\n";
+    std::cout << "Subview of B from element (3,2) of size [5,2] = \n" << B.view().subview(3,2,5,2) << "\n";
+    std::cout << std::boolalpha 
+              << "Is the subview contiguous ? " << static_cast<bool>(B.view().subview(3,2,5,2).is_contiguous()) << "\n";
 
     return 0;
 }
