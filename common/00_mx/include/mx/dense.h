@@ -62,8 +62,9 @@ public:
         return _data[idx(i,j)];
     }
 
+    // Equality operator (assumes same layout)
     bool operator==(const Dense& other) const noexcept {
-        if(_size != other._size) return false;
+        if (_rows != other._rows || _cols != other._cols) return false; //needs to compare shape not only size
 
         for(index_t idx = 0; idx < _size; idx++) {
             if(_data[idx] != other._data[idx]) return false;
