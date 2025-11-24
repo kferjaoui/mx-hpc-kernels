@@ -2,6 +2,7 @@
 #include<cassert>
 #include<thread>
 #include<cmath>
+// #include"gemm_parallel.h"
 #include"mx/dense.h"
 #include"mx/dense_view.h"
 
@@ -11,14 +12,19 @@ namespace stdx = std::experimental;
 
 namespace mx{
 
-template<typename T>
-void gemm_cpu_threads_vectorized(const Dense<T>& A, const Dense<T>& B, Dense<T>& C, index_t numThreads){
+template<typename T, class Layout = RowMajor>
+void gemm_cpu_threads_vectorized(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C, index_t numThreads){
+     static_assert(Dense<T, Layout>::is_row_major,
+                  "gemm_cpu_threads_vectorized currently supports RowMajor only");
     gemm_cpu_threads_vectorized(A.view(), B.view(), C.view(), numThreads);
 }
 
 
-template<typename T>
-void gemm_cpu_threads_vectorized(DenseView<const T> A, DenseView<const T> B, DenseView<T> C, index_t numThreads = 8){
+template<typename T, class Layout = RowMajor>
+void gemm_cpu_threads_vectorized(DenseView<const T, Layout> A, DenseView<const T, Layout> B, DenseView<T, Layout> C, index_t numThreads = 8){
+     static_assert(DenseView<const T, Layout>::is_row_major,
+                  "gemm_cpu_threads_vectorized currently supports RowMajor only");
+
     const index_t N = A.rows();
     const index_t K = A.cols();
     const index_t M = B.cols();
@@ -35,9 +41,6 @@ void gemm_cpu_threads_vectorized(DenseView<const T> A, DenseView<const T> B, Den
     index_t Mb = (M + mc - 1) / mc; // number of column blocks
 
     numThreads = numThreads? std::min(numThreads, Mb) : 1;
-
-    std::vector<std::thread> threads;
-    threads.reserve(numThreads);
 
     auto baseWork  = Mb / numThreads;
     auto remainder = Mb % numThreads;
@@ -143,14 +146,8 @@ void gemm_cpu_threads_vectorized(DenseView<const T> A, DenseView<const T> B, Den
         }        //Mi
     };
 
-    std::cout << "[Vectorized //] Spawning "<< numThreads << " concurrent threads...\n";
+    mx_detail::launch_threads(numThreads, workFunction);
 
-    for(index_t tid=0; tid<numThreads; tid++){
-        threads.emplace_back(workFunction, tid);
-    }
-
-    for(auto& t:threads){
-        if(t.joinable()) t.join();
-    }
 }
+
 }
