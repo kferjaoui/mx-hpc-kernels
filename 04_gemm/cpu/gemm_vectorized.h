@@ -13,17 +13,17 @@ namespace stdx = std::experimental;
 namespace mx{
 
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_vectorized(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C, index_t numThreads){
-     static_assert(Dense<T, Layout>::is_row_major,
-                  "gemm_cpu_threads_vectorized currently supports RowMajor only");
+void gemm_cpu_threads_vectorized(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C, index_t numThreads)
+{
     gemm_cpu_threads_vectorized(A.view(), B.view(), C.view(), numThreads);
 }
 
 
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_vectorized(DenseView<const T, Layout> A, DenseView<const T, Layout> B, DenseView<T, Layout> C, index_t numThreads = 8){
-     static_assert(DenseView<const T, Layout>::is_row_major,
-                  "gemm_cpu_threads_vectorized currently supports RowMajor only");
+void gemm_cpu_threads_vectorized(DenseView<const T, Layout> A, DenseView<const T, Layout> B, DenseView<T, Layout> C, index_t numThreads = 8)
+{
+    static_assert(DenseView<const T, Layout>::is_row_major,
+                  "gemm_cpu_threads_vectorized() currently supports RowMajor only");
 
     const index_t N = A.rows();
     const index_t K = A.cols();

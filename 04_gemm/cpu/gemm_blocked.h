@@ -9,12 +9,17 @@
 namespace mx{
 
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_cache_blocked(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C, index_t numThreads = 8){
+void gemm_cpu_threads_cache_blocked(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C, index_t numThreads = 8)
+{
     gemm_cpu_threads_cache_blocked(A.view(), B.view(), C.view(), numThreads);
 }
 
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_cache_blocked(DenseView<const T, Layout> A, DenseView<const T, Layout> B, DenseView<T, Layout> C, index_t numThreads = 8){
+void gemm_cpu_threads_cache_blocked(DenseView<const T, Layout> A, DenseView<const T, Layout> B, DenseView<T, Layout> C, index_t numThreads = 8)
+{
+    static_assert(DenseView<const T, Layout>::is_row_major,
+                  "gemm_cpu_threads_cache_blocked() currently supports RowMajor only");
+
     const index_t N = A.rows();
     const index_t K = A.cols();
     const index_t M = B.cols();

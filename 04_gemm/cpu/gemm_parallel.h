@@ -49,13 +49,16 @@ struct BlockScheduler {
     }
 };
 
-template<typename T, class Scheduler>
-void gemm_cpu_threads_impl(DenseView<const T> A,
-                           DenseView<const T> B,
-                           DenseView<T>       C,
+template<typename T, class Scheduler, class Layout = RowMajor>
+void gemm_cpu_threads_impl(DenseView<const T, Layout> A,
+                           DenseView<const T, Layout> B,
+                           DenseView<T, Layout>       C,
                            index_t            numThreads,
                            Scheduler          sched) 
 {
+    static_assert(DenseView<const T, Layout>::is_row_major,
+                  "gemm_cpu_threads_cyclic() and gemm_cpu_threads_block() currently support RowMajor only");
+
     const index_t N = A.rows();
     const index_t K = A.cols();
     const index_t M = B.cols();
@@ -66,7 +69,7 @@ void gemm_cpu_threads_impl(DenseView<const T> A,
     numThreads = numThreads ? std::min(numThreads, N) : 1;
 
     // Materialize the transposed of B for better locality
-    Dense<T> BT(M, K);
+    Dense<T, Layout> BT(M, K);
     for (index_t r = 0; r < K; ++r) {
         for (index_t c = 0; c < M; ++c) {
             BT(c, r) = B(r, c);
@@ -94,32 +97,28 @@ void gemm_cpu_threads_impl(DenseView<const T> A,
 
 // Row-Strided Parallel pattern
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_cyclic(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C, index_t numThreads = 8){
-
+void gemm_cpu_threads_cyclic(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C, index_t numThreads = 8)
+{
     gemm_cpu_threads_cyclic(A.view(), B.view(), C.view(), numThreads);
-    
 }
 
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_cyclic(DenseView<const T, Layout> A, DenseView<const T, Layout> B, DenseView<T, Layout> C, index_t numThreads = 8){
-
+void gemm_cpu_threads_cyclic(DenseView<const T, Layout> A, DenseView<const T, Layout> B, DenseView<T, Layout> C, index_t numThreads = 8)
+{
     gemm_cpu_threads_impl(A, B, C, numThreads, mx_detail::CyclicScheduler{});
-
 }
 
 // Row-Blocked parallel pattern
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_block(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C, index_t numThreads = 8){
-
+void gemm_cpu_threads_block(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C, index_t numThreads = 8)
+{
     gemm_cpu_threads_block(A.view(), B.view(), C.view(), numThreads);
-
 }
 
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_block(DenseView<const T, Layout> A, DenseView<const T, Layout> B, DenseView<T, Layout> C, index_t numThreads = 8){
-
+void gemm_cpu_threads_block(DenseView<const T, Layout> A, DenseView<const T, Layout> B, DenseView<T, Layout> C, index_t numThreads = 8)
+{
     gemm_cpu_threads_impl(A, B, C, numThreads, mx_detail::BlockScheduler{});
-
 }
 
 } // mx
