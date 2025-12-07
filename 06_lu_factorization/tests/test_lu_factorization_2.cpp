@@ -22,7 +22,7 @@ int main(){
 
     std::cout << "Original matrix B:\n" << LU_mx << std::endl;
     std::vector<mx::index_t> pivB_mx(2);
-    mx::LUInfo info = mx::lu_factor_unblocked(LU_mx, pivB_mx);
+    mx::LUInfo info = mx::lu_unblocked(LU_mx, pivB_mx);
 
     std::cout << "mx::LU factorization info: " << info << std::endl;
 

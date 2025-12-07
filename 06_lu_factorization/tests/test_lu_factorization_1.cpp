@@ -19,7 +19,7 @@ int main(){
 
     std::cout << "Original matrix A:\n" << LU_mx << std::endl;
     std::vector<mx::index_t> pivA_mx(2);
-    mx::LUInfo info = mx::lu_factor_unblocked(LU_mx.view(), pivA_mx);
+    mx::LUInfo info = mx::lu_unblocked(LU_mx, pivA_mx);
 
     std::cout << "LU factorization info: " << info << std::endl;
 

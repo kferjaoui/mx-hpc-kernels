@@ -11,7 +11,7 @@ int main(){
     std::cout << "Original matrix M:\n" << M << std::endl;
 
     std::vector<mx::index_t> piv_M(3);
-    mx::LUInfo info = mx::lu_factor_unblocked(M.view(), piv_M);
+    mx::LUInfo info = mx::lu_unblocked(M.view(), piv_M);
 
     std::cout << "LU factorization info: " << info << std::endl;
 
@@ -28,7 +28,7 @@ int main(){
     mx::Dense<double> b(3,1, {5,-2,9});                 // single RHS
     std::vector<mx::index_t> piv_C(3);
 
-    mx::LUInfo lu_info = mx::lu_factor_unblocked(C.view(), piv_C);
+    mx::LUInfo lu_info = mx::lu_unblocked(C.view(), piv_C);
     // Expect info.ok(), piv == [1,1,2]
 
     std::cout << "LU factorization info: " << lu_info << std::endl;

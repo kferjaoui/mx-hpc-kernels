@@ -5,21 +5,44 @@
 #include "pivot.h"
 #include <algorithm>
 #include <cmath>
+#include <span>
 
 namespace mx{
 
 template<typename T, class Layout>
-[[nodiscard]] constexpr 
-LUInfo lu_factor_unblocked(DenseView<T, Layout> LU, std::vector<index_t>& piv){
+[[nodiscard]] LUInfo lu_unblocked(Dense<T, Layout>& LU, 
+                                  std::vector<index_t>& piv)
+{
+    return lu_unblocked(LU.view(), piv);
+}
+
+
+template<typename T, class Layout>
+[[nodiscard]] LUInfo lu_unblocked(DenseView<T, Layout> LU,
+                                  std::vector<index_t>& piv)
+{   
     const index_t N = LU.rows();
     const index_t M = LU.cols(); 
     const index_t K = std::min(N, M);
 
-    // assert(piv.size() >= K && "pivot vector too small");
     if (piv.size() < K){
         std::cout << "Warning: pivot vector resized from " << piv.size() << " to " << K << "\n";
         piv.resize(K);
     }
+    return lu_unblocked_impl(LU, std::span<index_t>(piv.data(), K));
+}
+
+
+template<typename T, class Layout>
+[[nodiscard]] constexpr 
+LUInfo lu_unblocked_impl(DenseView<T, Layout> LU,
+                         std::span<index_t> piv)
+{
+    const index_t N = LU.rows();
+    const index_t M = LU.cols(); 
+    const index_t K = std::min(N, M);
+
+    assert(piv.size() >= K && "pivot vector too small");
 
     LUInfo info;
 
@@ -37,7 +60,7 @@ LUInfo lu_factor_unblocked(DenseView<T, Layout> LU, std::vector<index_t>& piv){
         piv[k] = i_pivot;
 
         // 2. swap full rows
-        if (i_pivot != k) swap_full_row(LU, k, i_pivot);
+        if (i_pivot != k) swap_full_rows(LU, k, i_pivot);
 
         // 3. guard against zero; TODO: near-zero pivot
         const T akk = LU(k,k);
