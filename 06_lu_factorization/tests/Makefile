@@ -1,29 +1,56 @@
-CXX      		:= g++
-CXXFLAGS 		:= -O3 -march=native -std=c++20
-THIRD_PARTY 	:= ../../third_party
-EIGEN_INCLUDE 	:= $(THIRD_PARTY)/eigen
-INC      		:= -I.. -I../../common/00_mx/include -I$(EIGEN_INCLUDE) -MMD -MP
-SRCS	 		:= test_lu_factorization_1.cpp test_lu_factorization_2.cpp test_lu_solve.cpp
-OBJS	 		:= $(patsubst %.cpp,%.o,$(SRCS))
-DEPS	 		:= $(OBJS:.o=.d)
-TARGETS	 		:= test_1 test_2 test_3
+CXX       ?= g++
+STD        = -std=c++20
+OPT        = -O3 -march=native
+WARN       = -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wno-sign-conversion
+
+ROOT           := ../..
+THIRD_PARTY    := $(ROOT)/third_party
+COMMON         := $(ROOT)/common
+MXINC          := $(COMMON)/00_mx/include
+GEMM_INC       := $(ROOT)/04_gemm
+EIGEN_INCLUDE  := $(THIRD_PARTY)/eigen
+
+CPPFLAGS  := -I./include -I.. -I$(COMMON) -I$(GEMM_INC) -I$(MXINC) -I$(EIGEN_INCLUDE) -MMD -MP
+CXXFLAGS  := $(STD) $(OPT) $(WARN)
+LDFLAGS   :=
+LDLIBS    := -pthread
+
+SRCS      := \
+  lu_fullrank_unblocked.cpp \
+  lu_singular_unblocked.cpp \
+  lu_rectangular_unblocked.cpp \
+  lu_blocked_vs_unblocked_gram_perf.cpp \
+  lu_solve_single_multi_rhs.cpp
+
+OBJS      := $(SRCS:.cpp=.o)
+DEPS      := $(OBJS:.o=.d)
+TARGETS   := $(SRCS:.cpp=)
 
 all: $(TARGETS)
 
-test_1: test_lu_factorization_1.o
-	$(CXX) $(CXXFLAGS) $< -o $@ 
+# One rule to link them all
+%: %.o
+	$(CXX) $(LDFLAGS) $< $(LDLIBS) -o $@
 
-test_2: test_lu_factorization_2.o
-	$(CXX) $(CXXFLAGS) $< -o $@ 
+# Compile
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
 
-test_3: test_lu_solve.o
-	$(CXX) $(CXXFLAGS) $< -o $@ 
+perf: lu_blocked_vs_unblocked_gram_perf
 
-%.o: %.cpp 
-	$(CXX) $(CXXFLAGS) $(INC) -c $< -o $@
+debug: CXXFLAGS := $(STD) -O0 -g $(WARN)
+debug: clean all
 
-clean: 
+asan:  CXXFLAGS += -O1 -g -fsanitize=address -fno-omit-frame-pointer
+asan:  LDFLAGS  += -fsanitize=address
+asan:  clean all
+
+ubsan: CXXFLAGS += -O1 -g -fsanitize=undefined
+ubsan: LDFLAGS  += -fsanitize=undefined
+ubsan: clean all
+
+clean:
 	rm -f $(OBJS) $(DEPS) $(TARGETS)
 
-.PHONY: all clean
+.PHONY: all clean perf debug asan ubsan
 -include $(DEPS)
