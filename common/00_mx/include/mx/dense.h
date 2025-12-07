@@ -34,6 +34,7 @@ class Dense {
 
 public:
     Dense() = default;
+    Dense(const Dense& other) = default; // default copy constructor
     
     Dense(index_t rows, index_t cols):
         _rows(rows), _cols(cols), _size(rows*cols), _data(rows*cols) {
@@ -50,6 +51,16 @@ public:
         assert(rows >= 0 && cols >= 0);
         assert(static_cast<index_t>(init.size()) == rows * cols && 
                "Initializer size must match rows*cols");
+    }
+
+    // Constructs a contiguous Dense from an arbitrary DenseView
+    explicit Dense(const DenseView<const T, Layout>& view):
+        _rows(view.rows()), _cols(view.cols()), _size(view.size()), _data(view.size()) {
+        for(index_t i=0; i<_rows; i++){
+            for(index_t j=0; j<_cols; j++){
+                (*this)(i,j) = view(i,j);
+            }
+        }
     }
 
     [[nodiscard]] T& operator()(index_t i, index_t j) noexcept {

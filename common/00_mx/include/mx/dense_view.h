@@ -35,6 +35,9 @@ class DenseView {
         assert(ptr != nullptr || (rows == 0 && cols == 0));
     }
 
+    template<typename U, class L>
+    friend DenseView<const U, L> as_const(DenseView<U, L>) noexcept;
+
 public:
     DenseView() = default;
     DenseView(const DenseView& other) = default; // default copy constructor
@@ -78,6 +81,12 @@ public:
     static constexpr bool is_col_major = !row_major;
 
     // Create subview maintaining parent strides
+    [[nodiscard]] DenseView<T, Layout> subview(index_t i0, index_t j0, index_t n_rows, index_t n_cols) noexcept {
+        assert(i0 >= 0 && j0 >= 0);
+        assert(i0 + n_rows <= _rows && j0 + n_cols <= _cols);
+        return DenseView(_buffer + idx(i0,j0), n_rows, n_cols, _strides[0], _strides[1]); 
+    }
+
     [[nodiscard]] DenseView<const T, Layout> subview(index_t i0, index_t j0, index_t n_rows, index_t n_cols) const noexcept {
         assert(i0 >= 0 && j0 >= 0);
         assert(i0 + n_rows <= _rows && j0 + n_cols <= _cols);
@@ -150,6 +159,12 @@ public:
         }
     }
 
+    void set_zero() noexcept {
+        for(index_t i=0; i<_rows; i++)
+            for(index_t j=0; j<_cols; j++)
+                (*this)(i,j) = T{0};            
+    }
+
     // MX -> Eigen conversion
     auto to_eigen() const {
         using MatType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, row_major ? Eigen::RowMajor : Eigen::ColMajor>;
@@ -168,5 +183,13 @@ public:
         return eigenMatrix;
     }
 };
+
+template<typename T, class Layout>
+DenseView<const T, Layout> as_const(DenseView<T, Layout> view) noexcept {
+    return DenseView<const T, Layout>(
+        view._buffer, view._rows, view._cols,
+        view._strides[0], view._strides[1]
+    );
+}
 
 }
