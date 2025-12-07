@@ -9,7 +9,7 @@
 namespace mx{
 
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_microtiles(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C, index_t numThreads)
+void gemm_cpu_threads_microtiles(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C, index_t numThreads = 8)
 {
     gemm_cpu_threads_microtiles(A.view(), B.view(), C.view(), numThreads);
 }
