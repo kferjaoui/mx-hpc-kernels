@@ -45,12 +45,17 @@ public:
         _rows(rows), _cols(cols), _size(rows*cols), _data(rows*cols, init) {
         assert(rows >= 0 && cols >= 0);
     }
-
+    
     Dense(index_t rows, index_t cols, std::initializer_list<T> init):
-        _rows(rows), _cols(cols), _size(rows*cols), _data(init) {
+    _rows(rows), _cols(cols), _size(rows*cols), _data(init) {
         assert(rows >= 0 && cols >= 0);
         assert(static_cast<index_t>(init.size()) == rows * cols && 
-               "Initializer size must match rows*cols");
+        "Initializer size must match rows*cols");
+    }
+    
+    Dense(index_t rows, index_t cols, T* const data_ptr):
+        _rows(rows), _cols(cols), _size(rows*cols), _data(data_ptr, data_ptr + rows*cols) {
+        assert(rows >= 0 && cols >= 0);
     }
 
     // Constructs a contiguous Dense from an arbitrary DenseView

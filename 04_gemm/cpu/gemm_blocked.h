@@ -9,13 +9,23 @@
 namespace mx{
 
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_cache_blocked(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C, index_t numThreads = 8)
+void gemm_cpu_threads_cache_blocked(const T alpha,
+                                    const Dense<T, Layout>& A, 
+                                    const Dense<T, Layout>& B, 
+                                    const T beta,
+                                    Dense<T, Layout>& C,
+                                    index_t numThreads = 8)
 {
-    gemm_cpu_threads_cache_blocked(A.view(), B.view(), C.view(), numThreads);
+    gemm_cpu_threads_cache_blocked(alpha, A.view(), B.view(), beta, C.view(), numThreads);
 }
 
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_cache_blocked(DenseView<const T, Layout> A, DenseView<const T, Layout> B, DenseView<T, Layout> C, index_t numThreads = 8)
+void gemm_cpu_threads_cache_blocked(const T alpha,
+                                    DenseView<const T, Layout> A, 
+                                    DenseView<const T, Layout> B, 
+                                    const T beta,
+                                    DenseView<T, Layout> C, 
+                                    index_t numThreads = 8)
 {
     static_assert(DenseView<const T, Layout>::is_row_major,
                   "gemm_cpu_threads_cache_blocked() currently supports RowMajor only");
@@ -26,6 +36,13 @@ void gemm_cpu_threads_cache_blocked(DenseView<const T, Layout> A, DenseView<cons
 
     assert(K == B.rows() && N == C.rows() && M == C.cols());
     if (N == 0 || M == 0 || K == 0) return;
+
+    // scale C by beta
+    if (beta != T{1}) {
+        for(index_t r=0; r<N; r++)
+            for(index_t c=0; c<M; c++)
+                C(r,c) *= beta;
+    }
 
     Dense<T, Layout> BT(M, K);
     for(index_t r=0; r<K; r++){
@@ -71,7 +88,7 @@ void gemm_cpu_threads_cache_blocked(DenseView<const T, Layout> A, DenseView<cons
                             for(index_t p=pc; p<pend; p++){
                                 sum += A(i,p) * BT(j,p);
                             }
-                            C(i,j) += sum; // accumulate the current K-block
+                            C(i,j) += alpha * sum; // accumulate the current K-block
                         }
                     }
                 }

@@ -70,18 +70,36 @@ void parallel_blocked_impl(index_t N, index_t K, index_t M,
 // Public APIs:
 
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_cache_blocked_experimental(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C, index_t numThreads = 8){
-    gemm_cpu_threads_cache_blocked_experimental(A.view(), B.view(), C.view(), numThreads);
+void gemm_cpu_threads_cache_blocked_experimental(const T alpha,
+                                                 const Dense<T, Layout>& A, 
+                                                 const Dense<T, Layout>& B, 
+                                                 const T beta, 
+                                                 Dense<T, Layout>& C, 
+                                                 index_t numThreads = 8)
+{
+    gemm_cpu_threads_cache_blocked_experimental(alpha, A.view(), B.view(), beta, C.view(), numThreads);
 }
 
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_cache_blocked_experimental(DenseView<const T, Layout> A, DenseView<const T, Layout> B, DenseView<T, Layout> C, index_t numThreads = 8){
+void gemm_cpu_threads_cache_blocked_experimental(const T alpha,
+                                                 DenseView<const T, Layout> A, 
+                                                 DenseView<const T, Layout> B, 
+                                                 const T beta, 
+                                                 DenseView<T, Layout> C, 
+                                                 index_t numThreads = 8){
     const index_t N = A.rows();
     const index_t K = A.cols();
     const index_t M = B.cols();
 
     assert(K == B.rows() && N == C.rows() && M == C.cols());
     if (N == 0 || M == 0 || K == 0) return;
+
+    // scale C by beta
+    if (beta != T{1}) {
+        for(index_t r=0; r<N; r++)
+            for(index_t c=0; c<M; c++)
+                C(r,c) *= beta;
+    }
 
     Dense<T, Layout> BT(M, K);
     for(index_t r=0; r<K; r++){
@@ -99,7 +117,7 @@ void gemm_cpu_threads_cache_blocked_experimental(DenseView<const T, Layout> A, D
                 for(index_t p=pc; p<pend; p++){
                     sum += A(i,p) * BT(j,p);
                 }
-                C(i,j) += sum; // accumulate the current K-block
+                C(i,j) += alpha * sum; // accumulate the current K-block
             }
         }
     };

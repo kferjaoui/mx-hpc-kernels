@@ -8,34 +8,42 @@
 namespace mx{
 
 template<typename T, class Layout = RowMajor>
-void gemm_cache_blocked(const Dense<T, Layout>& A,
+void gemm_cache_blocked(const T alpha,
+                        const Dense<T, Layout>& A,
                         const Dense<T, Layout>& B,
+                        const T beta,
                         Dense<T, Layout>& C)
 {
-    gemm_cache_blocked(A.view(), B.view(), C.view());
+    gemm_cache_blocked(alpha, A.view(), B.view(), beta, C.view());
 }
 
 template<typename T, class Layout = RowMajor>
-void gemm_optimized(const Dense<T, Layout>& A,
+void gemm_optimized(const T alpha,
+                    const Dense<T, Layout>& A,
                     const Dense<T, Layout>& B,
-                    Dense<T,       Layout>& C)
-{
-    gemm_optimized(A.view(), B.view(), C.view());
-}
-
-template<typename T, class Layout = RowMajor>
-void gemm_reference(const Dense<T, Layout>& A,
-                    const Dense<T, Layout>& B,
+                    const T beta,
                     Dense<T, Layout>& C)
 {
-    gemm_reference(A.view(), B.view(), C.view());
+    gemm_optimized(alpha, A.view(), B.view(), beta, C.view());
+}
+
+template<typename T, class Layout = RowMajor>
+void gemm_reference(const T alpha,
+                    const Dense<T, Layout>& A,
+                    const Dense<T, Layout>& B,
+                    const T beta,
+                    Dense<T, Layout>& C)
+{
+    gemm_reference(alpha, A.view(), B.view(), beta, C.view());
 }
 
 
 
 template<typename T, class Layout = RowMajor>
-void gemm_reference(DenseView<const T, Layout> A,
+void gemm_reference(const T alpha,
+                    DenseView<const T, Layout> A,
                     DenseView<const T, Layout> B,
+                    const T beta,
                     DenseView<T,       Layout> C)
 {
     const index_t N = A.rows();
@@ -50,7 +58,7 @@ void gemm_reference(DenseView<const T, Layout> A,
             for(index_t k=0; k<K; k++){
                 sum += A(i,k)*B(k,j); 
             }
-            C(i,j) = sum;
+            C(i,j) = alpha * sum + beta * C(i,j);
         }
     }
 }
@@ -58,8 +66,10 @@ void gemm_reference(DenseView<const T, Layout> A,
 
 
 template<typename T, class Layout = RowMajor>
-void gemm_optimized(DenseView<const T, Layout> A,
+void gemm_optimized(const T alpha, 
+                    DenseView<const T, Layout> A,
                     DenseView<const T, Layout> B,
+                    const T beta,
                     DenseView<T,       Layout> C)
 {
     constexpr bool row_major = std::is_same_v<Layout, RowMajor>;
@@ -85,7 +95,7 @@ void gemm_optimized(DenseView<const T, Layout> A,
                 for(index_t k=0; k<K; k++){
                     sum += A(i,k)*BT(j,k);
                 }
-                C(i,j) = sum;
+                C(i,j) = alpha * sum + beta * C(i,j);
             }
         }
     } else{
@@ -103,7 +113,7 @@ void gemm_optimized(DenseView<const T, Layout> A,
                 for(index_t k=0; k<K; k++){
                     sum += AT(k,i)*B(k,j);
                 }
-                C(i,j) = sum;
+                C(i,j) = alpha * sum + beta * C(i,j);
             }
         } 
     }
@@ -111,8 +121,10 @@ void gemm_optimized(DenseView<const T, Layout> A,
 
 
 template<typename T, class Layout = RowMajor>
-void gemm_cache_blocked(DenseView<const T, Layout> A,
+void gemm_cache_blocked(const T alpha, 
+                        DenseView<const T, Layout> A,
                         DenseView<const T, Layout> B,
+                        const T beta,
                         DenseView<T,       Layout> C)
 {
     const index_t N = A.rows();
@@ -134,7 +146,15 @@ void gemm_cache_blocked(DenseView<const T, Layout> A,
     const index_t Kb = (K + kc - 1) / kc; // number of depth blocks
     const index_t Mb = (M + mc - 1) / mc; // number of column blocks
 
+    // scale C by beta
+    if (beta != T{1}) {
+        for(index_t r=0; r<N; r++)
+            for(index_t c=0; c<M; c++)
+                C(r,c) *= beta;
+    }
+
     if constexpr (row_major) {// Row-major: transpose B to get contiguous access in k
+        // Transpose B into BT for better locality
         Dense<T, Layout> BT(M, K);
         for (index_t r = 0; r < K; ++r) {
             for (index_t c = 0; c < M; ++c) {
@@ -162,7 +182,7 @@ void gemm_cache_blocked(DenseView<const T, Layout> A,
                                 // A(i,p) and BT(j,p) both contiguous in p for RowMajor
                                 sum += A(i,p) * BT(j,p);
                             }
-                            C(i,j) += sum;
+                            C(i,j) += alpha * sum;
                         }
                     }
                 }
@@ -170,6 +190,7 @@ void gemm_cache_blocked(DenseView<const T, Layout> A,
         }
 
     } else {// Col-major: transpose A instead, keep B, walk k down columns
+        // Transpose A into AT for better locality
         Dense<T, Layout> AT(K, N);
         for (index_t r = 0; r < N; ++r) {
             for (index_t c = 0; c < K; ++c) {
@@ -196,7 +217,7 @@ void gemm_cache_blocked(DenseView<const T, Layout> A,
                                 // For ColMajor, both AT(p,i) and B(p,j) are contiguous in p
                                 sum += AT(p, i) * B(p, j);
                             }
-                            C(i,j) += sum;
+                            C(i,j) += alpha * sum;
                         }
                     }
                 }

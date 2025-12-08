@@ -4,13 +4,16 @@
 #include"mx/utils/ostream.h"
 #include"mx/dense_view.h"
 
+#include <Eigen/Dense>
+
 #include"CycleTimer.h"
 
+using Matrix  = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
 int main(){
     const size_t Nattempts = 10;
 
-    using Layout = mx::ColMajor; // mx::RowMajor (or mx::ColMajor but only for sequential GEMMs for now)
+    using Layout = mx::RowMajor; // mx::RowMajor (or mx::ColMajor but only for sequential GEMMs for now)
 
     mx::Dense<double, Layout> A(2000, 2000, 1.0);
     mx::Dense<double, Layout> B(2000, 2000, 2.0);
@@ -19,31 +22,58 @@ int main(){
     mx::Dense<double, Layout> C(2000, 2000, 0.0);
     mx::Dense<double, Layout> Zeros(2000, 2000, 0.0);
 
-    // ++++++++++++ SEQUENTIAL GEMMs +++++++++++++++
+    double alpha = 1.0;
+    double beta  = 0.0;
 
     // Naive GEMM 
     double startTime = CycleTimer::currentSeconds();
-    mx::gemm_reference(A, B, Z);
+    mx::gemm_reference(alpha, A, B, beta, Z);
     double endTime = CycleTimer::currentSeconds();
     auto seq_time = endTime - startTime;
     printf("[Naive GEMM]: %.3f ms\n", (endTime - startTime) * 1000);
 
+    // Eigen matrices for validation
+    Matrix A_eigen = A.to_eigen();
+    Matrix B_eigen = B.to_eigen();
+    Matrix C_eigen(2000,2000);
+
+    auto min_time = seq_time;
+
+    for(size_t i=0; i<Nattempts; i++){
+        startTime = CycleTimer::currentSeconds();
+        C_eigen.noalias() = alpha * (A_eigen * B_eigen) + beta * C_eigen;
+        endTime = CycleTimer::currentSeconds();
+        min_time = std::min(min_time, endTime - startTime);  
+    }
+
+    C = mx::Dense<double, Layout>(C_eigen.rows(), C_eigen.cols(), C_eigen.data()); //construct mx::Dense from Eigen matrix
+
+    if(C == Z){
+        printf("[Eigen]: %.3f ms ( x %.2f speed-up)\n", (min_time) * 1000, seq_time/min_time);
+    } else std::cout << "Mismatch in values...\n";
+
+    // ++++++++++++ SEQUENTIAL GEMMs +++++++++++++++
+
+    printf("\n");
+    printf(" ==== Sequential GEMMs ====");
+    printf("\n");
+
     // Naive GEMM with better locality
     startTime = CycleTimer::currentSeconds();
-    mx::gemm_optimized(A, B, C);
+    mx::gemm_optimized(alpha, A, B, beta, C);
     endTime = CycleTimer::currentSeconds();
-    auto min_time = endTime - startTime;
+    min_time = endTime - startTime;
     if(C == Z){
         printf("[GEMM Optimized Locality]: %.3f ms ( x %.2f speed-up)\n", (min_time) * 1000, seq_time/min_time);
     } else std::cout << "Mismatch in values...\n";
 
-    C = Zeros;
+    // C = Zeros;
 
     // GEMM with L1/L2/L3 cache blocking 
     min_time = seq_time;
     
     startTime = CycleTimer::currentSeconds();
-    mx::gemm_cache_blocked(A, B, C);
+    mx::gemm_cache_blocked(alpha, A, B, beta, C);
     endTime = CycleTimer::currentSeconds();
     min_time = std::min(min_time, endTime - startTime);
 
@@ -66,9 +96,8 @@ int main(){
         min_time = seq_time;
         
         for(size_t i=0; i<Nattempts; i++){
-            C = Zeros;
             startTime = CycleTimer::currentSeconds();
-            mx::gemm_cpu_threads_cache_blocked_experimental(A, B, C, Nthreads);
+            mx::gemm_cpu_threads_cache_blocked_experimental(alpha, A, B, beta, C, Nthreads);
             endTime = CycleTimer::currentSeconds();
             min_time = std::min(min_time, endTime - startTime);
         }
@@ -81,9 +110,8 @@ int main(){
         min_time = seq_time;
         
         for(size_t i=0; i<Nattempts; i++){
-            C = Zeros;
             startTime = CycleTimer::currentSeconds();
-            mx::gemm_cpu_threads_cache_blocked(A, B, C, Nthreads);
+            mx::gemm_cpu_threads_cache_blocked(alpha, A, B, beta, C, Nthreads);
             endTime = CycleTimer::currentSeconds();
             min_time = std::min(min_time, endTime - startTime);
         }
@@ -96,9 +124,8 @@ int main(){
         min_time = seq_time;
         
         for(size_t i=0; i<Nattempts; i++){
-            C = Zeros;
             startTime = CycleTimer::currentSeconds();
-            mx::gemm_cpu_threads_cyclic(A, B, C, 21);
+            mx::gemm_cpu_threads_cyclic(alpha, A, B, beta, C, 21);
             endTime = CycleTimer::currentSeconds();
             min_time = std::min(min_time, endTime - startTime);
         }
@@ -111,9 +138,8 @@ int main(){
         min_time = seq_time;
         
         for(size_t i=0; i<Nattempts; i++){
-            C = Zeros;
             startTime = CycleTimer::currentSeconds();
-            mx::gemm_cpu_threads_block(A, B, C, 21);
+            mx::gemm_cpu_threads_block(alpha, A, B, beta, C, 21);
             endTime = CycleTimer::currentSeconds();
             min_time = std::min(min_time, endTime - startTime);  
         }
@@ -126,9 +152,8 @@ int main(){
         min_time = seq_time;
         
         for(size_t i=0; i<Nattempts; i++){
-            C = Zeros;
             startTime = CycleTimer::currentSeconds();
-            mx::gemm_cpu_threads_microtiles(A, B, C, Nthreads);
+            mx::gemm_cpu_threads_microtiles(alpha, A, B, beta, C, Nthreads);
             endTime = CycleTimer::currentSeconds();
             min_time = std::min(min_time, endTime - startTime);  
         }
@@ -140,9 +165,8 @@ int main(){
         // Cache Blocks + Microtiling + SIMD vectorization of parallel GEMM
         min_time = seq_time;
         for(size_t i=0; i<Nattempts; i++){
-            C = Zeros;
             startTime = CycleTimer::currentSeconds();
-            mx::gemm_cpu_threads_vectorized(A, B, C, Nthreads);
+            mx::gemm_cpu_threads_vectorized(alpha, A, B, beta, C, Nthreads);
             endTime = CycleTimer::currentSeconds();
             min_time = std::min(min_time, endTime - startTime);  
         }

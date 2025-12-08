@@ -11,7 +11,7 @@ GEMM_INC       := $(ROOT)/04_gemm
 EIGEN_INCLUDE  := $(THIRD_PARTY)/eigen
 
 CPPFLAGS  := -I./include -I.. -I$(COMMON) -I$(GEMM_INC) -I$(MXINC) -I$(EIGEN_INCLUDE) -MMD -MP
-CXXFLAGS  := $(STD) $(OPT) $(WARN)
+CXXFLAGS  := $(STD) $(OPT) #$(WARN)
 LDFLAGS   :=
 LDLIBS    := -pthread
 

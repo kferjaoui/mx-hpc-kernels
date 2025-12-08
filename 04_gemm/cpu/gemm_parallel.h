@@ -50,10 +50,12 @@ struct BlockScheduler {
 };
 
 template<typename T, class Scheduler, class Layout = RowMajor>
-void gemm_cpu_threads_impl(DenseView<const T, Layout> A,
+void gemm_cpu_threads_impl(const T alpha,
+                           DenseView<const T, Layout> A,
                            DenseView<const T, Layout> B,
+                           const T beta,
                            DenseView<T, Layout>       C,
-                           index_t            numThreads,
+                           index_t           numThreads,
                            Scheduler          sched) 
 {
     static_assert(DenseView<const T, Layout>::is_row_major,
@@ -67,6 +69,13 @@ void gemm_cpu_threads_impl(DenseView<const T, Layout> A,
     if (N == 0 || M == 0 || K == 0) return;
 
     numThreads = numThreads ? std::min(numThreads, N) : 1;
+
+    // scale C by beta
+    if (beta != T{1}) {
+        for(index_t r=0; r<N; r++)
+            for(index_t c=0; c<M; c++)
+                C(r,c) *= beta;
+    }
 
     // Materialize the transposed of B for better locality
     Dense<T, Layout> BT(M, K);
@@ -83,7 +92,7 @@ void gemm_cpu_threads_impl(DenseView<const T, Layout> A,
                 for (index_t k = 0; k < K; ++k) {
                     sum += A(i, k) * BT(j, k);
                 }
-                C(i, j) = sum;
+                C(i, j) += alpha * sum;
             }
         });
     };
@@ -97,28 +106,48 @@ void gemm_cpu_threads_impl(DenseView<const T, Layout> A,
 
 // Row-Strided Parallel pattern
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_cyclic(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C, index_t numThreads = 8)
+void gemm_cpu_threads_cyclic(const T alpha,
+                             const Dense<T, Layout>& A,
+                             const Dense<T, Layout>& B,
+                             const T beta, 
+                             Dense<T, Layout>& C, 
+                             index_t numThreads = 8)
 {
-    gemm_cpu_threads_cyclic(A.view(), B.view(), C.view(), numThreads);
+    gemm_cpu_threads_cyclic(alpha, A.view(), B.view(), beta, C.view(), numThreads);
 }
 
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_cyclic(DenseView<const T, Layout> A, DenseView<const T, Layout> B, DenseView<T, Layout> C, index_t numThreads = 8)
+void gemm_cpu_threads_cyclic(const T alpha,
+                             DenseView<const T, Layout> A,
+                             DenseView<const T, Layout> B, 
+                             const T beta,
+                             DenseView<T, Layout> C, 
+                             index_t numThreads = 8)
 {
-    gemm_cpu_threads_impl(A, B, C, numThreads, mx_detail::CyclicScheduler{});
+    gemm_cpu_threads_impl(alpha, A, B, beta, C, numThreads, mx_detail::CyclicScheduler{});
 }
 
 // Row-Blocked parallel pattern
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_block(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C, index_t numThreads = 8)
+void gemm_cpu_threads_block(const T alpha,
+                            const Dense<T, Layout>& A, 
+                            const Dense<T, Layout>& B, 
+                            const T beta,
+                            Dense<T, Layout>& C, 
+                            index_t numThreads = 8)
 {
-    gemm_cpu_threads_block(A.view(), B.view(), C.view(), numThreads);
+    gemm_cpu_threads_block(alpha, A.view(), B.view(), beta, C.view(), numThreads);
 }
 
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_block(DenseView<const T, Layout> A, DenseView<const T, Layout> B, DenseView<T, Layout> C, index_t numThreads = 8)
+void gemm_cpu_threads_block(const T alpha,
+                            DenseView<const T, Layout> A, 
+                            DenseView<const T, Layout> B, 
+                            const T beta,
+                            DenseView<T, Layout> C, 
+                            index_t numThreads = 8)
 {
-    gemm_cpu_threads_impl(A, B, C, numThreads, mx_detail::BlockScheduler{});
+    gemm_cpu_threads_impl(alpha, A, B, beta, C, numThreads, mx_detail::BlockScheduler{});
 }
 
 } // mx

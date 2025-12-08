@@ -147,10 +147,12 @@ LUInfo lu_blocked_impl(DenseView<T, Layout> LU,
                                                 current_block_size, n_cols_trailing); // view into original matrix
             
             Dense<T, Layout> A01(LU01); // copy to a seperate buffer before overwriting
-            LU01.set_zero(); // clear the target block before writing into it
-            gemm_cpu_threads_vectorized(as_const(L00_inv.view()), 
+            gemm_cpu_threads_vectorized(T{1},
+                                        as_const(L00_inv.view()), 
                                         as_const(A01.view()), 
-                                        LU01, std::thread::hardware_concurrency());
+                                        T{0},
+                                        LU01,
+                                        std::thread::hardware_concurrency());
         }
 
         // 6. Update trailing matrix i.e. A11 = A11 - L10 * U01
@@ -164,20 +166,12 @@ LUInfo lu_blocked_impl(DenseView<T, Layout> LU,
             DenseView<T, Layout> A11 = LU.subview(s + current_block_size, s + current_block_size,
                                                 n_rows_trailing, n_cols_trailing);
             // Perform A11 -= L10 * U01
-            // TODO: Implememt a more general GEMM; C = alpha*AB + beta*C
-            // gemm_cpu_threads_vectorized(-T{1}, as_const(L10.view()), 
-            //                             as_const(U01.view()), T{1}, A11);
-
-            Dense<T, Layout> tmp(n_rows_trailing, n_cols_trailing, T{0});
-            gemm_cpu_threads_vectorized(as_const(L10),
+            gemm_cpu_threads_vectorized(-T{1}, 
+                                        as_const(L10), 
                                         as_const(U01),
-                                        tmp.view(), std::thread::hardware_concurrency());
-
-            for(index_t i=0; i<n_rows_trailing; i++){
-                for(index_t j=0; j<n_cols_trailing; j++){
-                    A11(i,j) -= tmp(i,j);
-                }
-            }
+                                        T{1}, 
+                                        A11,
+                                        std::thread::hardware_concurrency());
         }
 
     }

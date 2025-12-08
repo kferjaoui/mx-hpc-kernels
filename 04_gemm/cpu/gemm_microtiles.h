@@ -9,13 +9,23 @@
 namespace mx{
 
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_microtiles(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C, index_t numThreads = 8)
+void gemm_cpu_threads_microtiles(const T alpha,
+                                 const Dense<T, Layout>& A, 
+                                 const Dense<T, Layout>& B, 
+                                 const T beta,
+                                 Dense<T, Layout>& C, 
+                                 index_t numThreads = 8)
 {
-    gemm_cpu_threads_microtiles(A.view(), B.view(), C.view(), numThreads);
+    gemm_cpu_threads_microtiles(alpha, A.view(), B.view(), beta, C.view(), numThreads);
 }
 
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_microtiles(DenseView<const T, Layout> A, DenseView<const T, Layout> B, DenseView<T, Layout> C, index_t numThreads = 8)
+void gemm_cpu_threads_microtiles(const T alpha,
+                                 DenseView<const T, Layout> A, 
+                                 DenseView<const T, Layout> B, 
+                                 const T beta, 
+                                 DenseView<T, Layout> C, 
+                                 index_t numThreads = 8)
 {
     static_assert(DenseView<const T, Layout>::is_row_major,
                   "gemm_cpu_threads_microtiles() currently supports RowMajor only");
@@ -26,6 +36,13 @@ void gemm_cpu_threads_microtiles(DenseView<const T, Layout> A, DenseView<const T
 
     assert(K == B.rows() && N == C.rows() && M == C.cols());
     if (N == 0 || M == 0 || K == 0) return;
+
+    // scale C by beta
+    if (beta != T{1}) {
+        for(index_t r=0; r<N; r++)
+            for(index_t c=0; c<M; c++)
+                C(r,c) *= beta;
+    }
 
     const index_t nc = 256; // rows of A/C per block
     const index_t kc = 256; // depth of A/B per block
@@ -120,7 +137,7 @@ void gemm_cpu_threads_microtiles(DenseView<const T, Layout> A, DenseView<const T
                             // Store the micro-tile back to C
                             for(index_t i=0; i<i_valid; i++){
                                 for(index_t j=0; j<j_valid; j++){
-                                    C(i0_micro + i, j0_micro + j) += sum[j+mr*i];
+                                    C(i0_micro + i, j0_micro + j) += alpha * sum[j+mr*i];
                                 }
                             }
 

@@ -13,14 +13,24 @@ namespace stdx = std::experimental;
 namespace mx{
 
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_vectorized(const Dense<T, Layout>& A, const Dense<T, Layout>& B, Dense<T, Layout>& C, index_t numThreads = 8)
+void gemm_cpu_threads_vectorized(const T alpha,
+                                 const Dense<T, Layout>& A, 
+                                 const Dense<T, Layout>& B, 
+                                 const T beta,
+                                 Dense<T, Layout>& C, 
+                                 index_t numThreads = 8)
 {
-    gemm_cpu_threads_vectorized(A.view(), B.view(), C.view(), numThreads);
+    gemm_cpu_threads_vectorized(alpha, A.view(), B.view(), beta, C.view(), numThreads);
 }
 
 
 template<typename T, class Layout = RowMajor>
-void gemm_cpu_threads_vectorized(DenseView<const T, Layout> A, DenseView<const T, Layout> B, DenseView<T, Layout> C, index_t numThreads = 8)
+void gemm_cpu_threads_vectorized(const T alpha,
+                                 DenseView<const T, Layout> A, 
+                                 DenseView<const T, Layout> B, 
+                                 const T beta, 
+                                 DenseView<T, Layout> C, 
+                                 index_t numThreads = 8)
 {
     static_assert(DenseView<const T, Layout>::is_row_major,
                   "gemm_cpu_threads_vectorized() currently supports RowMajor only");
@@ -31,6 +41,13 @@ void gemm_cpu_threads_vectorized(DenseView<const T, Layout> A, DenseView<const T
 
     assert(K == B.rows() && N == C.rows() && M == C.cols());
     if (N == 0 || M == 0 || K == 0) return;
+
+    // scale C by beta
+    if (beta != T{1}) {
+        for(index_t r=0; r<N; r++)
+            for(index_t c=0; c<M; c++)
+                C(r,c) *= beta;
+    }
 
     const index_t nc = 256; // rows of A/C per block
     const index_t kc = 256; // depth of A/B per block
@@ -133,7 +150,7 @@ void gemm_cpu_threads_vectorized(DenseView<const T, Layout> A, DenseView<const T
                                     // load C into a masked vector, add, then store back (also masked)
                                     vT vC{};
                                     stdx::where(mask, vC).copy_from(&C(i0_micro + i, j0_simd), stdx::element_aligned);
-                                    vC += acc[i];
+                                    vC += alpha * acc[i];
                                     stdx::where(mask, vC).copy_to(&C(i0_micro + i, j0_simd), stdx::element_aligned);
                                 }
                             }
