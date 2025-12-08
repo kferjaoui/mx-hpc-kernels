@@ -33,6 +33,14 @@ int main(){
     printf("[Naive GEMM]: %.3f ms\n", (endTime - startTime) * 1000);
 
     // Eigen matrices for validation
+    #ifdef EIGEN_USE_BLAS
+        std::cout << "Eigen is using BLAS\n";
+    #endif
+    
+    #ifdef EIGEN_USE_MKL_ALL
+        std::cout << "Eigen is using Intel MKL\n";
+    #endif
+
     Matrix A_eigen = A.to_eigen();
     Matrix B_eigen = B.to_eigen();
     Matrix C_eigen(2000,2000);

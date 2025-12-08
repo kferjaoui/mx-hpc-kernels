@@ -7,10 +7,10 @@ ROOT           := ../..
 COMMON         := $(ROOT)/common
 MXINC          := $(COMMON)/00_mx/include
 EIGEN_INCLUDE  := $(ROOT)/third_party/eigen
-INC      	   := -I.. -I$(COMMON) -I$(MXINC) -I$(EIGEN_INCLUDE) -MMD -MP
+INC      	   := -I.. -I$(COMMON) -I$(MXINC) -I$(EIGEN_INCLUDE) -MMD -MP -DEIGEN_USE_BLAS -DEIGEN_USE_LAPACKE
 
 CXXFLAGS  := $(STD) $(OPT) # $(WARN)
-LDLIBS    := -pthread
+LDLIBS    := -pthread -lopenblas
 
 CPU_SRCS  := bench_gemm.cpp
 OBJS      := $(patsubst %.cpp,%.o,$(CPU_SRCS))

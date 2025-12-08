@@ -10,10 +10,10 @@ MXINC          := $(COMMON)/00_mx/include
 GEMM_INC       := $(ROOT)/04_gemm
 EIGEN_INCLUDE  := $(THIRD_PARTY)/eigen
 
-CPPFLAGS  := -I./include -I.. -I$(COMMON) -I$(GEMM_INC) -I$(MXINC) -I$(EIGEN_INCLUDE) -MMD -MP
+CPPFLAGS  := -I./include -I.. -I$(COMMON) -I$(GEMM_INC) -I$(MXINC) -I$(EIGEN_INCLUDE) -MMD -MP -DEIGEN_USE_BLAS -DEIGEN_USE_LAPACKE
 CXXFLAGS  := $(STD) $(OPT) #$(WARN)
 LDFLAGS   :=
-LDLIBS    := -pthread
+LDLIBS    := -pthread -llapacke -lopenblas
 
 SRCS      := \
   lu_fullrank_unblocked.cpp \

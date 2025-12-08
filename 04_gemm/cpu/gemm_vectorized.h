@@ -51,7 +51,7 @@ void gemm_cpu_threads_vectorized(const T alpha,
 
     const index_t nc = 256; // rows of A/C per block
     const index_t kc = 256; // depth of A/B per block
-    const index_t mc = 96; // columns of B/C per block
+    const index_t mc = 72; // columns of B/C per block; 72 allows to use all 28 threads of my Intel(R) Core(TM) i9-7940X CPU @ 3.10GHz
 
     index_t Nb = (N + nc - 1) / nc; // number of row blocks 
     index_t Kb = (K + kc - 1) / kc; // number of depth blocks
@@ -79,7 +79,7 @@ void gemm_cpu_threads_vectorized(const T alpha,
                     const index_t ic = Ni*nc;
                     const index_t iend = std::min(Ni*nc + nc, N);
                     
-                    constexpr index_t nr = 4; // micro-block rows
+                    constexpr index_t nr = 8; // micro-block rows
                     constexpr index_t mr = 8; // micro-block columns
 
                     index_t Nnr = (iend-ic + nr -1)/nr; // number of micro-tiles in a row block
@@ -110,15 +110,19 @@ void gemm_cpu_threads_vectorized(const T alpha,
                                 for(index_t i=0; i<nr; i++) acc[i] = vT{};
                                 for(index_t jv=0; jv < std::min(W, j_valid-j); jv++) mask[jv] = true; // set the valid lanes in the mask
 
-                                // Unroll the K-loop by 4 
+                                // Unroll the K-loop by 8
                                 index_t p=pc;
-                                const index_t pend4 = pc + ((pend - pc)/4)*4;
-                                for(; p<pend4; p+=4){
-                                    vT vB0{}, vB1{}, vB2{}, vB3{};
+                                const index_t pend8 = pc + ((pend - pc)/8)*8;
+                                for(; p<pend8; p+=8){
+                                    vT vB0{}, vB1{}, vB2{}, vB3{}, vB4{}, vB5{}, vB6{}, vB7{};
                                     stdx::where(mask, vB0).copy_from(&B(p, j0_simd), stdx::element_aligned);
                                     stdx::where(mask, vB1).copy_from(&B(p+1, j0_simd), stdx::element_aligned);
                                     stdx::where(mask, vB2).copy_from(&B(p+2, j0_simd), stdx::element_aligned);
                                     stdx::where(mask, vB3).copy_from(&B(p+3, j0_simd), stdx::element_aligned);
+                                    stdx::where(mask, vB4).copy_from(&B(p+4, j0_simd), stdx::element_aligned);
+                                    stdx::where(mask, vB5).copy_from(&B(p+5, j0_simd), stdx::element_aligned);
+                                    stdx::where(mask, vB6).copy_from(&B(p+6, j0_simd), stdx::element_aligned);
+                                    stdx::where(mask, vB7).copy_from(&B(p+7, j0_simd), stdx::element_aligned);
 
                                
                                     for(index_t i=0; i<i_valid; i++){
@@ -126,16 +130,24 @@ void gemm_cpu_threads_vectorized(const T alpha,
                                         vT vA1(A(i0_micro + i,p+1));
                                         vT vA2(A(i0_micro + i,p+2));
                                         vT vA3(A(i0_micro + i,p+3));
+                                        vT vA4(A(i0_micro + i,p+4));
+                                        vT vA5(A(i0_micro + i,p+5));
+                                        vT vA6(A(i0_micro + i,p+6));
+                                        vT vA7(A(i0_micro + i,p+7));
                                     
                                         stdx::where(mask, acc[i]) = acc[i] + vA0 * vB0; //all invalid lanes remain unchanged
                                         stdx::where(mask, acc[i]) = acc[i] + vA1 * vB1;
                                         stdx::where(mask, acc[i]) = acc[i] + vA2 * vB2;
                                         stdx::where(mask, acc[i]) = acc[i] + vA3 * vB3;
+                                        stdx::where(mask, acc[i]) = acc[i] + vA4 * vB4;
+                                        stdx::where(mask, acc[i]) = acc[i] + vA5 * vB5;
+                                        stdx::where(mask, acc[i]) = acc[i] + vA6 * vB6;
+                                        stdx::where(mask, acc[i]) = acc[i] + vA7 * vB7;
                                     }
                                 }
 
-                                // K-tail (0to 3 leftover)
-                                p = pend4;
+                                // K-tail (0to 7 leftover)
+                                p = pend8;
                                 for(; p<pend; p++){
                                     vT vB{};
                                     std:where(mask, vB).copy_from(&B(p, j0_simd), stdx::element_aligned);

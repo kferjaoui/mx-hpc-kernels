@@ -50,6 +50,19 @@ int main() {
         best_eigen_ms = std::min(best_eigen_ms, elapsed_ms);
     }
 
+    // Eigen matrices for validation
+    #ifdef EIGEN_USE_BLAS
+        std::cout << "Eigen is using BLAS\n";
+    #endif
+
+    #ifdef EIGEN_USE_LAPACKE
+        std::cout << "Eigen is using LAPACKE\n";
+    #endif
+    
+    #ifdef EIGEN_USE_MKL_ALL
+        std::cout << "Eigen is using Intel MKL\n";
+    #endif
+
     std::cout << "[Eigen]   best of " << Nattempts
             << " runs: " << best_eigen_ms << " ms\n";
 
