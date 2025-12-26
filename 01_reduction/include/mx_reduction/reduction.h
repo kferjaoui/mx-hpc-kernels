@@ -16,7 +16,6 @@ namespace mx{
 template <class T, class Op>
 T reduce_cpu(const T* input, size_t size, T init, Op op, size_t nThreads);
 
-// if you call these before they’re defined, forward declare them too:
 template <class T, class Op>
 T reduce_threads_impl(const T* input, size_t size, T init, Op op, size_t nThreads);
 
@@ -91,14 +90,6 @@ T reduce_threads_impl(const T* input, size_t size, T init, Op op, size_t spawnTh
 
     for (size_t idx=0; idx<spawnThreads; idx++) 
         threads.emplace_back(threadWorker, idx);
-
-    // for (size_t idx=0; idx<numThreads; idx++) T.emplace_back(dotThreadWorker, idx,
-    //                                                                         hx, 
-    //                                                                         hy, 
-    //                                                                         numThreads, 
-    //                                                                         n, 
-    //                                                                         std::ref(sync_point), 
-    //                                                                         std::ref(vResult));
 
     for(auto& t: threads) t.join();
 
