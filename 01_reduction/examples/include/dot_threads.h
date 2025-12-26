@@ -1,10 +1,7 @@
 #include<thread>
 #include<barrier>
-#include<atomic>
 #include<vector>
 #include<cmath>
-#include<cstdio>
-#include "../../common/CycleTimer.h"
 
 void dotThreadWorker(int threadIdx,
                     const double* x, 
@@ -30,7 +27,8 @@ void dotThreadWorker(int threadIdx,
 
 double dotThreads(const double* hx, const double* hy, size_t n){
 
-    size_t numThreads = 32; 
+    size_t numThreads = std::thread::hardware_concurrency();
+    if (numThreads == 0) numThreads = 4; // Fallback
     std::vector<std::thread> T;
     T.reserve(numThreads);
     std::barrier<> sync_point(numThreads);
@@ -48,32 +46,4 @@ double dotThreads(const double* hx, const double* hy, size_t n){
 
     return vResult[0];
 
-}
-
-int main(){
-    const size_t n = 1u << 20; // 1,048,576 elements
-
-    // host data
-    std::vector<double> hx(n), hy(n);
-    for (size_t i = 0; i < n; ++i) {
-        // deterministic values (not too large)
-        hx[i] = 1.0 / double(i + 1);
-        hy[i] = std::sin(0.001 * double(i));
-    }
-
-    // CPU reference
-    double startTime = CycleTimer::currentSeconds();
-    double ref = 0.0;
-    for (size_t i = 0; i < n; ++i) ref += hx[i] * hy[i];
-    double endTime = CycleTimer::currentSeconds();
-    std::printf("[Total Time Serial]: %.3f ms\n", (endTime - startTime) * 1000);
-    std::printf("Serial ref : %.17g\n", ref);
-    
-    startTime = CycleTimer::currentSeconds();
-    double resultThreads = dotThreads(hx.data(), hy.data(), n);
-    endTime = CycleTimer::currentSeconds();
-    std::printf("[Total Time Threads]: %.3f ms\n", (endTime - startTime) * 1000);
-    std::printf("Thread dot : %.17g\n", resultThreads);
-
-    return 0;
 }
