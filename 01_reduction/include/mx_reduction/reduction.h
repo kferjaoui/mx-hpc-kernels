@@ -4,11 +4,13 @@
 #include <vector>
 #include <barrier>
 #include <type_traits>
-// #include <cuda_runtime.h>
 
-#include "cuda_check.h"
 #include "operations.h"
 #include "policy.h"
+
+#ifdef __CUDACC__
+    #include <cuda_runtime.h>
+#endif
 
 namespace mx{
 
@@ -19,9 +21,11 @@ T reduce_cpu(const T* input, size_t size, T init, Op op, size_t nThreads);
 template <class T, class Op>
 T reduce_threads_impl(const T* input, size_t size, T init, Op op, size_t nThreads);
 
-// template <class T, class Op>
-// T reduce_cuda(const T* input, size_t size, T init, Op op, const CUDA& cuda_policy);
-
+#ifdef __CUDACC__
+template <class T, class Op>
+T reduce_cuda(const T* input, size_t size, T init, Op op, const CUDA& cuda_policy);
+#endif
+   
 // Main reduce function
 template<typename T, class Op, class Policy>
 T reduce(const T* input, size_t size, T init, Op op, Policy policy){
@@ -29,12 +33,14 @@ T reduce(const T* input, size_t size, T init, Op op, Policy policy){
     if constexpr (std::is_same_v<Policy, CPU>) 
     {
         return reduce_cpu(input, size, init, op, policy.threads);
-    } 
-    else if constexpr (std::is_same_v<Policy, CUDA>)
-    {
-        // return reduce_cuda(input, size, init, op, policy); // policy also contains stream info
-        return T{0.0};
     }
+    #ifdef __CUDACC__
+        else if constexpr (std::is_same_v<Policy, CUDA>)
+        {
+            // return reduce_cuda(input, size, init, op, policy); // policy also contains stream info
+            return T{0.0};
+        }
+    #endif
     else
     {
         static_assert("mx::reduce: unsupported Policy type");
@@ -97,34 +103,36 @@ T reduce_threads_impl(const T* input, size_t size, T init, Op op, size_t spawnTh
 
 }
 
-// template<typename T, class Op>
-// T reduce_cuda(const T* input, size_t size, T init, Op op, const CUDA& cuda_policy){
+#ifdef __CUDACC__
+template<typename T, class Op>
+T reduce_cuda(const T* input, size_t size, T init, Op op, const CUDA& cuda_policy){
     
-//     T result{};
-//     T* device_input = nullptr;
-//     T* device_output= nullptr;
+    T result{};
+    T* device_input = nullptr;
+    T* device_output= nullptr;
 
-//     CUDA_CHECK( cudaMalloc( &device_input, size * sizeof(T) ) );
-//     CUDA_CHECK( cudaMalloc( &device_output, sizeof(T) ) );
+    CUDA_CHECK( cudaMalloc( &device_input, size * sizeof(T) ) );
+    CUDA_CHECK( cudaMalloc( &device_output, sizeof(T) ) );
 
-//     CUDA_CHECK( cudaMemcpy( device_input, input, size * sizeof(T), cudaMemcpyHostToDevice ) );
-//     CUDA_CHECK( cudaMemcpy( device_output, &init, sizeof(T), cudaMemcpyHostToDevice ) );
+    CUDA_CHECK( cudaMemcpy( device_input, input, size * sizeof(T), cudaMemcpyHostToDevice ) );
+    CUDA_CHECK( cudaMemcpy( device_output, &init, sizeof(T), cudaMemcpyHostToDevice ) );
 
-//     if (cuda_policy.grid.x * cuda_policy.grid.y * cuda_policy.grid.z == 1){
-//         reduce_singleblock<<<cuda_policy.grid, cuda_policy.block, cuda_policy.block * sizeof(T)>>>(device_input, device_output, size, op);
-//     } else{
-//         reduce_multiblock<<<cuda_policy.grid, cuda_policy.block, cuda_policy.block * sizeof(T)>>>(device_input, device_output, size, op);
-//     }
+    if (cuda_policy.grid.x * cuda_policy.grid.y * cuda_policy.grid.z == 1){
+        reduce_singleblock<<<cuda_policy.grid, cuda_policy.block, cuda_policy.block * sizeof(T)>>>(device_input, device_output, size, op);
+    } else{
+        reduce_multiblock<<<cuda_policy.grid, cuda_policy.block, cuda_policy.block * sizeof(T)>>>(device_input, device_output, size, op);
+    }
 
-//     CUDA_CHECK(cudaGetLastError());
-//     CUDA_CHECK(cudaDeviceSynchronize());
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
 
-//     CUDA_CHECK(cudaMemcpy(&result, device_output, sizeof(T), cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(&result, device_output, sizeof(T), cudaMemcpyDeviceToHost));
 
-//     cudaFree(device_input);
-//     cudaFree(device_output);
+    cudaFree(device_input);
+    cudaFree(device_output);
     
-//     return result;
-// }
+    return result;
+}
+#endif
 
 } // namespace mx
