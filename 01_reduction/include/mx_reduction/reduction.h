@@ -5,11 +5,11 @@
 #include <barrier>
 #include <type_traits>
 
-#include "operations.h"
-#include "policy.h"
+#include "mx_reduction/operations.h"
+#include "mx_reduction/policy.h"
 
 #ifdef __CUDACC__
-    #include <cuda_runtime.h>
+    #include "cuda_check.h"
 #endif
 
 namespace mx{
@@ -24,8 +24,14 @@ T reduce_threads_impl(const T* input, size_t size, T init, Op op, size_t nThread
 #ifdef __CUDACC__
 template <class T, class Op>
 T reduce_cuda(const T* input, size_t size, T init, Op op, const CUDA& cuda_policy);
+
+template <typename T, class Op>
+__global__ void reduce_baseline(const T* __restrict__ input,
+                                T* __restrict__ result,
+                                const size_t n,
+                                const Op op);
 #endif
-   
+
 // Main reduce function
 template<typename T, class Op, class Policy>
 T reduce(const T* input, size_t size, T init, Op op, Policy policy){
@@ -35,11 +41,10 @@ T reduce(const T* input, size_t size, T init, Op op, Policy policy){
         return reduce_cpu(input, size, init, op, policy.threads);
     }
     #ifdef __CUDACC__
-        else if constexpr (std::is_same_v<Policy, CUDA>)
-        {
-            // return reduce_cuda(input, size, init, op, policy); // policy also contains stream info
-            return T{0.0};
-        }
+    else if constexpr (std::is_same_v<Policy, CUDA>)
+    {
+        return reduce_cuda(input, size, init, op, policy);
+    }
     #endif
     else
     {
@@ -117,11 +122,7 @@ T reduce_cuda(const T* input, size_t size, T init, Op op, const CUDA& cuda_polic
     CUDA_CHECK( cudaMemcpy( device_input, input, size * sizeof(T), cudaMemcpyHostToDevice ) );
     CUDA_CHECK( cudaMemcpy( device_output, &init, sizeof(T), cudaMemcpyHostToDevice ) );
 
-    if (cuda_policy.grid.x * cuda_policy.grid.y * cuda_policy.grid.z == 1){
-        reduce_singleblock<<<cuda_policy.grid, cuda_policy.block, cuda_policy.block * sizeof(T)>>>(device_input, device_output, size, op);
-    } else{
-        reduce_multiblock<<<cuda_policy.grid, cuda_policy.block, cuda_policy.block * sizeof(T)>>>(device_input, device_output, size, op);
-    }
+    reduce_baseline<<<cuda_policy.grid, cuda_policy.block, cuda_policy.block * sizeof(T)>>>(device_input, device_output, size, op);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
