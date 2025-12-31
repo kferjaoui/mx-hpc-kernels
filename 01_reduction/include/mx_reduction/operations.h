@@ -20,7 +20,7 @@ struct Sum{
 
 template <typename T>
 struct Multiply{
-    __host__ __device__ T operator()(T a, T b) { return a * b; }
+    __host__ __device__ T operator()(T a, T b) const { return a * b; }
     __host__ __device__ T identity() const { return T{1}; }
 };
 

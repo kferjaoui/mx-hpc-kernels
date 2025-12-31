@@ -1,13 +1,13 @@
 NVCC = nvcc
 CXX  = g++
 STD  = -std=c++20
-ARCH = sm_89  # for my RTX 4070 (adjust to your GPU architecture)
+ARCH = -arch=sm_89  # for my RTX 4070 (adjust to your GPU architecture)
 CXXFLAGS = -O3 $(STD)
 ROOT_DIR := ../..
 SRC_DIR  := ../src
 TEST_DIR := .
 INC      := -I../include -I$(ROOT_DIR)/common
-NVCCFLAGS := $(CXXFLAGS) -arch=$(ARCH) $(INC)
+NVCCFLAGS := $(CXXFLAGS) $(ARCH) $(INC)
 CPPFLAGS := $(CXXFLAGS) $(INC)
 
 #sources
