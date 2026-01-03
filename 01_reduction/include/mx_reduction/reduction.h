@@ -122,7 +122,7 @@ T reduce_cuda(const T* input, size_t size, T init, Op op, const CUDA& cuda_polic
     CUDA_CHECK( cudaMemcpy( device_input, input, size * sizeof(T), cudaMemcpyHostToDevice ) );
     CUDA_CHECK( cudaMemcpy( device_output, &init, sizeof(T), cudaMemcpyHostToDevice ) );
 
-    reduce_baseline<<<cuda_policy.grid, cuda_policy.block, cuda_policy.block * sizeof(T)>>>(device_input, device_output, size, op);
+    reduce_baseline<<<cuda_policy.grid, cuda_policy.block>>>(device_input, device_output, size, op);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());

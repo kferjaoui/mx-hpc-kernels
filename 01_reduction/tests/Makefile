@@ -7,7 +7,7 @@ ROOT_DIR := ../..
 SRC_DIR  := ../src
 TEST_DIR := .
 INC      := -I../include -I$(ROOT_DIR)/common
-NVCCFLAGS := $(CXXFLAGS) $(ARCH) $(INC)
+NVCCFLAGS := -Xptxas=-v $(CXXFLAGS) $(ARCH) $(INC)
 CPPFLAGS := $(CXXFLAGS) $(INC)
 
 #sources
