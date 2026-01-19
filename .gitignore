@@ -6,6 +6,7 @@
 *.tmp
 *.exe
 *.dat
+*.o
 
 # directories
 .vscode/
