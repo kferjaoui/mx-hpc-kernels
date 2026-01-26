@@ -2,8 +2,6 @@
 #include <vector>
 #include <cmath>
 
-#include "mx_reduction/policy.h"
-#include "mx_reduction/operations.h"
 #include "mx_reduction/reduction.h"
 
 int main(){

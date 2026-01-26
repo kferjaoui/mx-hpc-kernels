@@ -1,9 +1,8 @@
 #include <cstdio>
 #include <vector>
-#include "mx_reduction/policy.h"
-#include "mx_reduction/operations.h"
-#include "mx_reduction/reduction.h"
 #include <cmath>
+
+#include "mx_reduction/reduction.h"
 
 int main(){
     int maxintfactorial = 170; // beyond this, double overflows i.e. 171! overflows to infinity
