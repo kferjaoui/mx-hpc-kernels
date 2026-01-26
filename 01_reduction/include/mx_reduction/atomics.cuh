@@ -1,3 +1,4 @@
+#pragma once
 #include <cuda_runtime.h>
 
 namespace mx {
@@ -112,4 +113,4 @@ __device__ double atomicMin_fp(double* address, double val) {
     return __longlong_as_double(old);
 }
 
-}
+} // namespace mx

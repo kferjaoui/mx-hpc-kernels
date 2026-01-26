@@ -1,4 +1,5 @@
 #pragma once
+#include <limits>
 
 // Define __host__ and __device__ for non-CUDA compilation
 #ifndef __CUDACC__
