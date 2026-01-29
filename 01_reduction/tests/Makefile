@@ -12,7 +12,7 @@ NVCCFLAGS := -Xptxas=-v $(CXXFLAGS) $(ARCH) $(INC)
 CPPFLAGS := $(CXXFLAGS) $(INC)
 
 #sources
-GPU_SRCS := $(TEST_DIR)/reduce_cuda.test.cu #$(SRC_DIR)/cuda/reduce_baseline.cu
+GPU_SRCS := $(TEST_DIR)/reduce_cuda.test.cu $(SRC_DIR)/cuda/reduce_cuda.cu
 GPU_OBJS := $(GPU_SRCS:.cu=.o)
 
 CPU_SRCS := $(TEST_DIR)/reduce_cpu.test.cpp

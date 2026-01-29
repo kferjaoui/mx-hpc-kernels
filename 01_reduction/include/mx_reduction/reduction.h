@@ -1,13 +1,8 @@
 #pragma once
-
 #include "mx_reduction/policy.h"
 #include "mx_reduction/operations.h"
-
 #include "mx_reduction/reduce_cpu.h"
-
-#ifdef __CUDACC__
-    #include "mx_reduction/reduce_cuda.cuh"
-#endif
+#include "mx_reduction/reduce_cuda.h"
 
 namespace mx{
 
@@ -22,12 +17,10 @@ T reduce(const T* input, size_t size, T init, Op op, Policy policy){
     {
         return reduce_cpu(input, size, init, op, policy.threads);
     }
-    #ifdef __CUDACC__
     else if constexpr (std::is_same_v<Policy, CUDA>)
     {
         return reduce_cuda(input, size, init, op, policy);
     }
-    #endif
     else
     {
         static_assert(always_false_v<Policy>, "mx::reduce: unsupported Policy type");
