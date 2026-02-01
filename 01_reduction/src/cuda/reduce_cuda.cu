@@ -2,6 +2,8 @@
 #include "cuda_check.h"
 #include "mx_reduction/reduce_cuda.h"
 #include "mx_reduction/reduce_baseline.cuh"
+#include "mx_reduction/reduce_interleaved.cuh"
+#include "mx_reduction/reduce_sequential.cuh"
 
 namespace mx {
 
@@ -20,8 +22,12 @@ T reduce_cuda(const T* input, size_t size, T init, Op op, const CUDA& cuda_polic
 
     int block_size = cuda_policy.block;
     dim3 grid{cuda_policy.grid_x, cuda_policy.grid_y, cuda_policy.grid_z};
-
-    reduce_baseline<<<grid, block_size>>>(device_input, device_output, size, op);
+    
+    // reduce_baseline<<<grid, block_size>>>(device_input, device_output, size, op);
+    
+    const size_t shmemBytes = block_size * sizeof(T);
+    // reduce_block_shmem_interleaved_addressing<<<grid, block_size, shmemBytes>>>(device_input, device_output, size, op);
+    reduce_block_shmem_sequential_addressing<<<grid, block_size, shmemBytes>>>(device_input, device_output, size, op);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());

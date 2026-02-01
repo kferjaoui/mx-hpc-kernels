@@ -13,7 +13,7 @@ INCLUDE := -I../include -I$(COMMON_DIR)
 
 TBB_LIBS := -ltbb # Link TBB library for std::reduce(std::execution::par, ...)
 
-SRC_CPU := ./reduce_baseline.bench.cpp 
+SRC_CPU := ./benchReduction.cpp 
 SRC_CUDA := ../src/cuda/reduce_cuda.cu
 
 OBJ_CPU := $(SRC_CPU:.cpp=.o)

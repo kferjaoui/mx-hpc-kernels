@@ -1,9 +1,5 @@
 #pragma once
-#include <cuda_runtime.h>
-#include <type_traits>
-
-#include "mx_reduction/operations.h"
-#include "mx_reduction/atomics.cuh"
+#include "mx_reduction/reduce_utils.cuh"
 
 namespace mx{
 
@@ -21,22 +17,7 @@ __global__ void reduce_baseline(const T* __restrict__ input, // 2 regiters for d
         reducedV = op(reducedV, input[idx]);            // At least 3 registers (temporary to store result, offset calculation, address calculation)
     }
 
-    if constexpr (std::is_same_v<Op, mx::Sum<T>>)       // Not sure whether there is predicate register for this?
-    {
-        atomicAdd(result, reducedV);
-    } 
-    else if constexpr (std::is_same_v<Op, mx::Multiply<T>>)
-    {
-        atomicMul(result, reducedV);
-    } 
-    else if constexpr (std::is_same_v<Op, mx::Max<T>>)
-    {
-        atomicMax_fp(result, reducedV);
-    } 
-    else if constexpr (std::is_same_v<Op, mx::Min<T>>)
-    {
-        atomicMin_fp(result, reducedV);
-    }
+    atomicOp(result, reducedV, op);
 }
 
 } // namespace mx
