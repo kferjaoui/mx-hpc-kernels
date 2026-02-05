@@ -4,11 +4,14 @@
 namespace mx{
 
 // Shared memory with sequential addressing
+// ********************************************************
+// Note: Works only for block sizes that are POWER OF TWO
+// ********************************************************
 template <typename T, class Op>
-__global__ void reduce_block_shmem_sequential_addressing(const T* __restrict__ input,
-                                T* __restrict__ result,
-                                const size_t n,
-                                const Op op)
+__global__ void reduce_sequential_addressing(const T* __restrict__ input,
+                                            T* __restrict__ result,
+                                            const size_t N_elements,
+                                            const Op op)
 {
     unsigned int local_tid = threadIdx.x;                            // local (per-block) index of the thread
     unsigned int global_tid = threadIdx.x + blockIdx.x * blockDim.x; // global index of the thread
@@ -17,17 +20,18 @@ __global__ void reduce_block_shmem_sequential_addressing(const T* __restrict__ i
     int stride = blockDim.x * gridDim.x;
 
     // Per-thread grid-strided reduction
-    for(size_t idx = global_tid; idx<n; idx += stride){
+    for(size_t idx = global_tid; idx<N_elements; idx += stride){
         thread_partial = op(thread_partial, input[idx]);
     }
     
-    extern __shared__ T sh[];
+    extern __shared__ __align__(sizeof(T)) unsigned char smem[];
+    T* sh = reinterpret_cast<T*>(smem);
     sh[local_tid] = thread_partial;
 
     __syncthreads();
     
     // Per-block reduction (sequential addressing)
-    for (int s = blockDim.x/2; s>0; s = s/2) {
+    for (int s = blockDim.x>>1; s>0; s>>=1) {
         if (local_tid < s){ // only lane-level divergence at warp level
             sh[local_tid] = op(sh[local_tid], sh[local_tid + s]);
         }

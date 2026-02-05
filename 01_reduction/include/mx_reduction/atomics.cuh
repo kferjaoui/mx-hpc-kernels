@@ -6,10 +6,25 @@ namespace mx {
 // ***************
 // Multiply atomic
 // ***************
-// Implementation of atomic multiplication for single/double floating-point types
+// Implementation of atomic multiplication for integer and (single/double) floating-point types
 // using atomicCAS (compare-and-swap) loop since CUDA does not provide
 
-__device__ float atomicMul(float* address, float val) {
+__device__ __forceinline__ int atomicMul(int* address, int val) {
+   
+    int old = atomicAdd(address, 0); // Atomic read
+    int assumed;
+
+    do {
+        assumed = old;
+        int desired = assumed * val;
+        old = atomicCAS(address, assumed, desired);
+    } while (old != assumed);
+
+    // Returns value before the atomic multiplication 
+    return old;
+}
+
+__device__ __forceinline__ float atomicMul(float* address, float val) {
     // float & unsigned int are both 32 bits
     unsigned int* addr_as_ui = (unsigned int*)(address); 
     
@@ -28,7 +43,7 @@ __device__ float atomicMul(float* address, float val) {
     return __uint_as_float(old);
 }
 
-__device__ double atomicMul(double* address, double val) {
+__device__ __forceinline__ double atomicMul(double* address, double val) {
     // double & unsigned long long are both 64 bits
     unsigned long long* addr_as_ull = (unsigned long long*)(address); 
     
@@ -52,7 +67,13 @@ __device__ double atomicMul(double* address, double val) {
 // Implementation of atomic Min/Max for single/double floating-point types
 // using atomicCAS (compare-and-swap) loop since CUDA does not provide
 
-__device__ float atomicMax_fp(float* address, float val) {
+// NB: CUDA already provides atomicMin/Max for integer types
+
+// *** Max ***
+
+using ::atomicMax; // expose the cuda built-in overloads for integer types
+
+__device__ __forceinline__ float atomicMax(float* address, float val) {
     unsigned int* addr_as_ui = (unsigned int*)(address); 
     unsigned int old = atomicAdd(addr_as_ui, 0);
     unsigned int assumed;
@@ -67,7 +88,7 @@ __device__ float atomicMax_fp(float* address, float val) {
     return __uint_as_float(old);
 }
 
-__device__ double atomicMax_fp(double* address, double val) {
+__device__ __forceinline__ double atomicMax(double* address, double val) {
     unsigned long long* addr_as_ull = (unsigned long long*)(address); 
     unsigned long long old = atomicAdd(addr_as_ull, 0);
     unsigned long long assumed;
@@ -82,8 +103,11 @@ __device__ double atomicMax_fp(double* address, double val) {
     return __longlong_as_double(old);
 }
 
+// *** Min ***
 
-__device__ float atomicMin_fp(float* address, float val) {
+using ::atomicMin; // expose the cuda built-in overloads for integer types
+
+__device__ __forceinline__ float atomicMin(float* address, float val) {
     unsigned int* addr_as_ui = (unsigned int*)(address); 
     unsigned int old = atomicAdd(addr_as_ui, 0);
     unsigned int assumed;
@@ -98,7 +122,7 @@ __device__ float atomicMin_fp(float* address, float val) {
     return __uint_as_float(old);
 }
 
-__device__ double atomicMin_fp(double* address, double val) {
+__device__ __forceinline__ double atomicMin(double* address, double val) {
     unsigned long long* addr_as_ull = (unsigned long long*)(address); 
     unsigned long long old = atomicAdd(addr_as_ull, 0);
     unsigned long long assumed;

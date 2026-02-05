@@ -5,7 +5,7 @@ STD      := -std=c++20
 OPT      := -O3 -march=native -DNDEBUG
 CXXFLAGS := $(STD) $(OPT) -pthread
 GPU_ARCH := -arch=sm_89
-NVCCFLAGS := $(STD) $(GPU_ARCH) -Xptxas=-v
+NVCCFLAGS := $(STD) $(GPU_ARCH) -Xptxas=-v --expt-relaxed-constexpr
 
 ROOT_DIR := ../..
 COMMON_DIR := $(ROOT_DIR)/common
@@ -14,7 +14,7 @@ INCLUDE := -I../include -I$(COMMON_DIR)
 TBB_LIBS := -ltbb # Link TBB library for std::reduce(std::execution::par, ...)
 
 SRC_CPU := ./benchReduction.cpp 
-SRC_CUDA := ../src/cuda/reduce_cuda.cu
+SRC_CUDA := ../src/cuda/reduce_cuda_profiling.cu
 
 OBJ_CPU := $(SRC_CPU:.cpp=.o)
 OBJ_CUDA := $(SRC_CUDA:.cu=.o)

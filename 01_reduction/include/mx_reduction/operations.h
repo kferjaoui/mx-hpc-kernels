@@ -15,26 +15,26 @@ namespace mx{
 
 template <typename T>
 struct Sum{
-    __host__ __device__ T constexpr operator()(T a, T b) const noexcept { return a + b; }
-    __host__ __device__ T static constexpr identity() noexcept { return T{0}; }
+    __host__ __device__ inline T constexpr operator()(T a, T b) const noexcept { return a + b; }
+    __host__ __device__ inline T static constexpr identity() noexcept { return T{0}; }
 };
 
 template <typename T>
 struct Multiply{
-    __host__ __device__ T constexpr operator()(T a, T b) const noexcept { return a * b; }
-    __host__ __device__ T static constexpr identity() noexcept { return T{1}; }
+    __host__ __device__ inline T constexpr operator()(T a, T b) const noexcept { return a * b; }
+    __host__ __device__ inline T static constexpr identity() noexcept { return T{1}; }
 };
 
 template <typename T>
 struct Max{
-    __host__ __device__ T constexpr operator()(T a, T b) const noexcept { return (a > b) ? a : b; }
-    __host__ __device__ T static constexpr identity() noexcept { return std::numeric_limits<T>::lowest(); }
+    __host__ __device__ inline T constexpr operator()(T a, T b) const noexcept { return (a > b) ? a : b; }
+    __host__ __device__ inline T static constexpr identity() noexcept { return std::numeric_limits<T>::lowest(); }
 };
 
 template <typename T>
 struct Min{
-    __host__ __device__ T constexpr operator()(T a, T b) const noexcept { return (a < b) ? a : b; }
-    __host__ __device__ T static constexpr identity() noexcept { return std::numeric_limits<T>::max(); }
+    __host__ __device__ inline T constexpr operator()(T a, T b) const noexcept { return (a < b) ? a : b; }
+    __host__ __device__ inline T static constexpr identity() noexcept { return std::numeric_limits<T>::max(); }
 };
 
 }

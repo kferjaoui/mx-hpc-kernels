@@ -1,6 +1,5 @@
 #pragma once
 #include <cuda_runtime.h>
-#include "cuda_check.h"
 
 #include "mx_reduction/policy.h"
 #include "mx_reduction/operations.h"

@@ -8,7 +8,7 @@ struct CPU {
 };
 
 struct CUDA {
-        int block = 256;
+        std::uint32_t block = 256;
         std::uint32_t grid_x = 2048;
         std::uint32_t grid_y = 1;
         std::uint32_t grid_z = 1;
