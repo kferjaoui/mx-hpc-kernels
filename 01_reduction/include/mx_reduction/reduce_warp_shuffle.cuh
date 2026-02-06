@@ -25,6 +25,30 @@ __global__ void reduce_warp_shuffle(const T* __restrict__ input,
     sh[local_tid] = thread_partial;
 
     __syncthreads();
+
+    // // ********* Test perf: Unrolled by 4
+    // T a0 = op.identity(), a1 = op.identity(), a2 = op.identity(), a3 = op.identity();
+    // int grid_stride = blockDim.x * gridDim.x;
+
+    // size_t N4 = N_elements - (N_elements & 3); // closest multiple of 4 to N_elements
+    // for(size_t idx = global_tid; (4*idx+3)<N4; idx += grid_stride){
+    //     a0 = op(a0, input[4*idx]);
+    //     a1 = op(a1, input[4*idx+1]);
+    //     a2 = op(a2, input[4*idx+2]);
+    //     a3 = op(a3, input[4*idx+3]);
+    // }
+
+    // extern __shared__ __align__(sizeof(T)) unsigned char smem[];
+    // T* sh = reinterpret_cast<T*>(smem);
+    // sh[local_tid] = op( op(a0,a1), op(a2,a3) );
+    // __syncthreads();
+
+    // T thread_remainder = op.identity();
+    // if (global_tid < (N_elements & 3)){
+    //     sh[local_tid] = op( sh[local_tid], input[global_tid + N4]);
+    // }
+    // __syncthreads();
+    // // *********************
     
     // Reduce in shared memory until we have <= 32 values left
     unsigned int active = blockDim.x;
