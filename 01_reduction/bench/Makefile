@@ -21,17 +21,18 @@ NVCCFLAGS += $(EXTRA_NVCCFLAGS)
 # If you see: fatal error: cuda_runtime.h: No such file or directory
 # set CUDA_HOME to your CUDA install, e.g.
 #   make CUDA_HOME=/usr/local/cuda-12.4
-CUDA_HOME ?= /usr/local/cuda
-CUDA_INC  := -I$(CUDA_HOME)/include
-CUDA_LIB  := -L$(CUDA_HOME)/lib64
+
+# CUDA_HOME ?= /usr/local/cuda
+# CUDA_INC  := -I$(CUDA_HOME)/include
+# CUDA_LIB  := -L$(CUDA_HOME)/lib64
 
 ROOT_DIR   := ../..
 COMMON_DIR := $(ROOT_DIR)/common
-INCLUDE    := -I../include -I$(COMMON_DIR) $(CUDA_INC)
+INCLUDE    := -I../include -I$(COMMON_DIR) #$(CUDA_INC)
 
 # TBB for std::execution::par backends (libtbb)
 LDLIBS  := -ltbb
-LDFLAGS := $(CUDA_LIB)
+# LDFLAGS := $(CUDA_LIB)
 
 SRC_CPU  := ./benchReduction.cpp
 SRC_CUDA := ../src/cuda/reduce_cuda_profiling.cu
@@ -62,7 +63,8 @@ help:
 
 # Link with nvcc so CUDA runtime gets pulled correctly
 $(BIN): $(OBJ)
-	$(NVCC) $(NVCCFLAGS) $(INCLUDE) $^ -o $@ $(LDFLAGS) $(LDLIBS)
+	$(NVCC) $(NVCCFLAGS) $(INCLUDE) $^ -o $@ $(LDLIBS) 
+# 	$(LDFLAGS) 
 
 $(OBJ_CPU): $(SRC_CPU)
 	$(CXX) $(CXXFLAGS) $(INCLUDE) -c $< -o $@

@@ -1,4 +1,5 @@
 #include <cuda_runtime.h>
+#include <vector>
 #include "cuda_check.h"
 #include "mx_reduction/reduce_cuda_profiling.h"
 
@@ -7,8 +8,21 @@
 #include "mx_reduction/reduce_interleaved.cuh"
 #include "mx_reduction/reduce_sequential.cuh"
 #include "mx_reduction/reduce_warp_shuffle.cuh"
+#include "mx_reduction/reduce_two_pass.cuh"
 
 namespace mx::profile {
+
+// Helper to convert enum to string for logging
+const char* reduce_kernel_name(ReduceKernel kernel) {
+    switch(kernel) {
+        case ReduceKernel::Baseline:     return "Baseline";
+        case ReduceKernel::Interleaved:  return "Interleaved";
+        case ReduceKernel::Sequential:   return "Sequential";
+        case ReduceKernel::WarpShuffle:  return "WarpShuffle";
+        case ReduceKernel::TwoPass:      return "TwoPass";
+        default:                         return "Unknown";
+    }
+}
 
 template<typename T, class Op>
 T reduce_cuda_profiled(const T* input,
@@ -20,19 +34,27 @@ T reduce_cuda_profiled(const T* input,
                        int warmup_iters = 5,
                        int iters = 100)
 {
+    // Kernel launch parameters
+    int block_size = cuda_policy.block;
+    std::uint32_t grid_size_1d  = cuda_policy.grid_x * cuda_policy.grid_y * cuda_policy.grid_z; // Flatten the grid dimensions into 1D
+    dim3 grid{grid_size_1d, 1, 1};
+    const size_t shmemBytes = block_size * sizeof(T);
+
+    // host pointers to device memory
     T result{};
     T* device_input = nullptr;
     T* device_output = nullptr;
+    // partials buffer for multi-block reduction (only used by TwoPass kernel, but we allocate it regardless for simplicity)
+    T* partials = nullptr;
+    std::vector<T> init_partials(grid_size_1d, init);
 
     CUDA_CHECK(cudaMalloc(&device_input,  size * sizeof(T)));
     CUDA_CHECK(cudaMalloc(&device_output, sizeof(T)));
+    CUDA_CHECK(cudaMalloc(&partials,      grid_size_1d * sizeof(T)));
 
     CUDA_CHECK(cudaMemcpy(device_input,  input, size * sizeof(T), cudaMemcpyHostToDevice));
     CUDA_CHECK(cudaMemcpy(device_output, &init, sizeof(T),         cudaMemcpyHostToDevice));
-
-    int block_size = cuda_policy.block;
-    dim3 grid{cuda_policy.grid_x, cuda_policy.grid_y, cuda_policy.grid_z};
-    const size_t shmemBytes = block_size * sizeof(T);
+    CUDA_CHECK(cudaMemcpy(partials, init_partials.data(), grid_size_1d * sizeof(T), cudaMemcpyHostToDevice));
 
     auto launch = [&](){
         switch (kernel) {
@@ -47,6 +69,12 @@ T reduce_cuda_profiled(const T* input,
                 break;
             case ReduceKernel::WarpShuffle:
                 reduce_warp_shuffle<<<grid, block_size, shmemBytes>>>(device_input, device_output, size, op);
+                break;
+            case ReduceKernel::TwoPass:
+                reduce_multiblock_first_pass<<<grid, block_size, shmemBytes>>>(device_input, partials, size, op);
+                CUDA_CHECK(cudaGetLastError());
+                CUDA_CHECK(cudaDeviceSynchronize());
+                reduce_monoblock_second_pass<<<dim3{1, 1, 1}, block_size, shmemBytes>>>(partials, device_output, grid_size_1d, op);
                 break;
         }
     };
@@ -86,7 +114,7 @@ T reduce_cuda_profiled(const T* input,
     CUDA_CHECK(cudaDeviceSynchronize());
 
     float avg_ms = total_ms / iters;
-    printf("[CUDA kernel] avg: %.4f ms | best: %.4f ms | iters: %d\n", avg_ms, best_ms, iters);
+    printf("[CUDA kernel: %s] avg: %.4f ms | best: %.4f ms | iters: %d\n", reduce_kernel_name(kernel), avg_ms, best_ms, iters);
 
     CUDA_CHECK(cudaMemcpy(&result, device_output, sizeof(T), cudaMemcpyDeviceToHost));
 
@@ -94,6 +122,7 @@ T reduce_cuda_profiled(const T* input,
     CUDA_CHECK(cudaEventDestroy(stop));
     CUDA_CHECK(cudaFree(device_input));
     CUDA_CHECK(cudaFree(device_output));
+    CUDA_CHECK(cudaFree(partials));
 
     return result;
 }

@@ -25,7 +25,7 @@ T reduce_profiled(const T* input, size_t size, T init, Op op, Policy policy){
     else if constexpr (std::is_same_v<Policy, CUDA>)
     {
         return mx::profile::reduce_cuda_profiled(input, size, init, op, policy, 
-                                                mx::profile::ReduceKernel::WarpShuffle,
+                                                mx::profile::ReduceKernel::TwoPass,
                                                 5, 10);
     }
     else

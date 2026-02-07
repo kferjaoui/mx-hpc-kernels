@@ -10,7 +10,8 @@ enum class ReduceKernel {
     Baseline,
     Interleaved,
     Sequential,
-    WarpShuffle
+    WarpShuffle,
+    TwoPass
 };
 
 template<typename T, class Op>
