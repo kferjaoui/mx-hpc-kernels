@@ -28,7 +28,8 @@ NVCCFLAGS += $(EXTRA_NVCCFLAGS)
 
 ROOT_DIR   := ../..
 COMMON_DIR := $(ROOT_DIR)/common
-INCLUDE    := -I../include -I$(COMMON_DIR) #$(CUDA_INC)
+MXINC      := $(COMMON_DIR)/00_mx/include
+INCLUDE    := -I../include -I$(COMMON_DIR) -I$(MXINC) #$(CUDA_INC)
 
 # TBB for std::execution::par backends (libtbb)
 LDLIBS  := -ltbb

@@ -1,8 +1,8 @@
 #pragma once
 #include <cuda_runtime.h>
 
-#include "mx_reduction/policy.h"
-#include "mx_reduction/operations.h"
+#include "mx/utils/policy.h"
+#include "mx/utils/operations.h"
 
 namespace mx {
 

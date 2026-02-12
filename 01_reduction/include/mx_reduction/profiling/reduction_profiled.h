@@ -1,9 +1,10 @@
 #pragma once
 #include "CycleTimer.h"
-#include "mx_reduction/policy.h"
-#include "mx_reduction/operations.h"
+#include "mx/utils/policy.h"
+#include "mx/utils/operations.h"
+
 #include "mx_reduction/reduce_cpu.h"
-#include "mx_reduction/reduce_cuda_profiling.h"
+#include "mx_reduction/profiling/reduce_cuda_profiling.h"
 
 namespace mx::profile {
 

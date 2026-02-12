@@ -6,7 +6,7 @@
 #include <execution>
 
 #include "CycleTimer.h"
-#include "mx_reduction/reduction_profiled.h"
+#include "mx_reduction/profiling/reduction_profiled.h"
 
 int main() {
     using dataType = double;

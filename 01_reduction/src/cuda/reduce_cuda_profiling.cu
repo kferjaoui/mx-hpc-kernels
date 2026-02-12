@@ -1,14 +1,14 @@
 #include <cuda_runtime.h>
 #include <vector>
 #include "cuda_check.h"
-#include "mx_reduction/reduce_cuda_profiling.h"
 
-#include "mx_reduction/kernels.cuh"
-#include "mx_reduction/reduce_baseline.cuh"
-#include "mx_reduction/reduce_interleaved.cuh"
-#include "mx_reduction/reduce_sequential.cuh"
-#include "mx_reduction/reduce_warp_shuffle.cuh"
-#include "mx_reduction/reduce_two_pass.cuh"
+#include "mx/utils/device_utils.cuh"
+#include "mx_reduction/detail/reduce_baseline.cuh"
+#include "mx_reduction/detail/reduce_interleaved.cuh"
+#include "mx_reduction/detail/reduce_sequential.cuh"
+#include "mx_reduction/detail/reduce_warp_shuffle.cuh"
+#include "mx_reduction/detail/reduce_two_pass.cuh"
+#include "mx_reduction/profiling/reduce_cuda_profiling.h"
 
 namespace mx::profile {
 
@@ -81,7 +81,7 @@ T reduce_cuda_profiled(const T* input,
 
     // Warmup (also “pays” one-time costs like clock ramp, caching, JIT if any)
     for (int i = 0; i < warmup_iters; ++i) {
-        mx::cuda_kernels::set_scalar<T><<<1,1>>>(device_output, init);
+        mx::device::set_scalar<T><<<1,1>>>(device_output, init);
         launch();
     }
     CUDA_CHECK(cudaGetLastError());
@@ -97,7 +97,7 @@ T reduce_cuda_profiled(const T* input,
     float best_ms  = std::numeric_limits<float>::infinity();
 
     for (int i = 0; i < iters; ++i) {
-        mx::cuda_kernels::set_scalar<T><<<1,1>>>(device_output, init);
+        mx::device::set_scalar<T><<<1,1>>>(device_output, init);
 
         CUDA_CHECK(cudaEventRecord(start));
         launch();

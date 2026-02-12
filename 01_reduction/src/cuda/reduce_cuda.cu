@@ -1,13 +1,13 @@
 #include <cuda_runtime.h>
 #include "cuda_check.h"
 #include "CycleTimer.h"
-#include "mx_reduction/kernels.cuh"
 #include "mx_reduction/reduce_cuda.h"
-#include "mx_reduction/reduce_baseline.cuh"
-#include "mx_reduction/reduce_interleaved.cuh"
-#include "mx_reduction/reduce_sequential.cuh"
-#include "mx_reduction/reduce_warp_shuffle.cuh"
-#include "mx_reduction/reduce_two_pass.cuh"
+#include "mx/utils/device_utils.cuh"
+#include "mx_reduction/detail/reduce_baseline.cuh"
+#include "mx_reduction/detail/reduce_interleaved.cuh"
+#include "mx_reduction/detail/reduce_sequential.cuh"
+#include "mx_reduction/detail/reduce_warp_shuffle.cuh"
+#include "mx_reduction/detail/reduce_two_pass.cuh"
 
 #include <numeric>
 #include <vector>

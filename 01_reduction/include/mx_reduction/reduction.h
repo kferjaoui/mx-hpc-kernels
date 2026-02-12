@@ -1,6 +1,6 @@
 #pragma once
-#include "mx_reduction/policy.h"
-#include "mx_reduction/operations.h"
+#include "mx/utils/policy.h"
+#include "mx/utils/operations.h"
 #include "mx_reduction/reduce_cpu.h"
 #include "mx_reduction/reduce_cuda.h"
 
@@ -30,8 +30,8 @@ T reduce(const T* input, size_t size, T init, Op op, Policy policy){
 // Default overload: CPU policy
 template <typename T, class Op>
 T reduce(const T* input, size_t size, T init, Op op){
-    CPU policy{};
-    return reduce(input, size, init, op, policy); // Calls the main reduce function ''reduce<T, Op, Policy>''
+    CPU serial_policy{};
+    return reduce(input, size, init, op, serial_policy); // Calls the main reduce function ''reduce<T, Op, Policy>''
 }
 
 } // namespace mx

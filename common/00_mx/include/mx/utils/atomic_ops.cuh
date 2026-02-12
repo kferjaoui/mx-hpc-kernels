@@ -2,8 +2,8 @@
 #include <cuda_runtime.h>
 #include <type_traits>
 
-#include "mx_reduction/operations.h"
-#include "mx_reduction/atomics.cuh"
+#include "mx/utils/operations.h"
+#include "mx/utils/atomics.cuh"
 
 namespace mx{
 

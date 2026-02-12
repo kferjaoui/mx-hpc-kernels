@@ -5,7 +5,7 @@
 #include <barrier>
 #include <type_traits>
 
-#include "mx_reduction/operations.h"
+#include "mx/utils/operations.h"
 
 namespace mx{
 

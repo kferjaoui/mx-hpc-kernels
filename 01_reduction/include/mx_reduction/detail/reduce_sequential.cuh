@@ -1,14 +1,14 @@
 #pragma once
-#include "mx_reduction/reduce_utils.cuh"
+#include "mx/utils/atomic_ops.cuh"
 
 namespace mx{
 
-// Shared memory interleaved addressing reduction kernel WITH divergent branching
+// Shared memory with sequential addressing
 // ********************************************************
 // Note: Works only for block sizes that are POWER OF TWO
 // ********************************************************
 template <typename T, class Op>
-__global__ void reduce_interleaved_addressing(const T* __restrict__ input,
+__global__ void reduce_sequential_addressing(const T* __restrict__ input,
                                             T* __restrict__ result,
                                             const size_t N_elements,
                                             const Op op)
@@ -30,17 +30,18 @@ __global__ void reduce_interleaved_addressing(const T* __restrict__ input,
 
     __syncthreads();
     
-    // Per-block reduction (interleaved addressing)
-    for (int d = 1; ( 1<<(d-1) ) < blockDim.x; ++d) {
-        if ( (local_tid % (1<<d)) == 0 ){ // Problem: divergent branching within the warp
-            sh[local_tid] = op(sh[local_tid], sh[ local_tid + (1<<(d - 1)) ]);
+    // Per-block reduction (sequential addressing)
+    for (int s = blockDim.x>>1; s>0; s>>=1) {
+        if (local_tid < s){ // only lane-level divergence at warp level
+            sh[local_tid] = op(sh[local_tid], sh[local_tid + s]);
         }
         __syncthreads();
     }
 
     // Reduction across all blocks 
     if (local_tid == 0) {
-        atomicOp(&result[0], sh[0], op);
+        // sh[0] holds the per-block reduced value
+        atomicOp(result, sh[0], op);
     }
 }
 

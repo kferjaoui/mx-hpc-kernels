@@ -1,5 +1,5 @@
 #pragma once
-#include "mx_reduction/reduce_utils.cuh"
+#include "mx/utils/atomic_ops.cuh"
 
 namespace mx{
 
