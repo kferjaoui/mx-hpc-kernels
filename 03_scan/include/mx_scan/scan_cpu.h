@@ -1,0 +1,22 @@
+#pragma once
+#include "mx_scan/detail/scan_serial.h"
+#include "mx_scan/detail/scan_parallel.h"
+
+namespace mx {
+
+template<ScanType scan_type, typename T, typename Op>
+void scan_cpu(const T* input, T* output, size_t size, Op op, int nThreads = 1){
+    if (size == 0) return;
+
+    if (nThreads <= 1) 
+    {
+        if (nThreads <= 0) nThreads = 1;
+        detail::scan_serial<scan_type>(input, output, size, op);
+    }
+    else 
+    {
+        detail::scan_parallel<scan_type>(input, output, size, op, nThreads);
+    }
+}
+
+} // namespace mx
