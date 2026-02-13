@@ -22,6 +22,7 @@ INC      := -I../include -I$(COMMON) -I$(MXINC)
 
 CPU_SRCS := $(TEST_DIR)/scan_cpu.test.cpp
 CPU_OBJS := $(CPU_SRCS:.cpp=.o)
+DEPS	 := $(CPU_OBJS:.o=.d)
 
 #binaries
 # GPU_BIN := reduce_cuda.test
@@ -45,6 +46,8 @@ $(CPU_BIN): $(CPU_OBJS)
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(INC) -c $< -o $@
 
+-include $(DEPS)
+
 clean:
 # 	rm -f $(GPU_OBJS) $(GPU_BIN) $(CPU_OBJS) $(CPU_BIN)
-	rm -f $(CPU_OBJS) $(CPU_BIN)
+	rm -f $(CPU_OBJS) $(CPU_BIN) $(DEPS)
