@@ -10,7 +10,8 @@ int main() {
     size_t N = 32;
     int* inputArray = new int[N];
     int* outputSerial = new int[N];
-    int* outputParallel = new int[N];
+    int* outputParallel_1 = new int[N];
+    int* outputParallel_2 = new int[N];
 
     for (int i=0; i<N; i++) inputArray[i] = i;
 
@@ -22,8 +23,8 @@ int main() {
     }
     printf("\n");
 
-    mx::scan<mx::ScanType::Exclusive>(inputArray, outputSerial, N, mx::Sum<int>{}, mx::CPU{});
-    mx::scan<mx::ScanType::Exclusive>(inputArray, outputParallel, N, mx::Sum<int>{}, mx::CPU{3});
+    // Serial 
+    mx::scan<mx::ScanType::Inclusive>(inputArray, outputSerial, N, mx::Sum<int>{}, mx::CPU{});
 
     // Print result of inclusive scan
     printf("[Serial] Inclusive Scan: ");
@@ -33,16 +34,29 @@ int main() {
     }
     printf("\n");
 
-    printf("[Parallel] Inclusive Scan: ");
+    // Parallel 
+    mx::scan<mx::ScanType::Inclusive, mx::detail::ScanAlgorithm::Hillis_Steele>(inputArray, outputParallel_1, N, mx::Sum<int>{}, mx::CPU{6});
+
+    printf("[Parallel] Hillis_Steele Inclusive Scan: \n");
     for (int i = 0; i < N; i++) {
-        printf("%i", outputParallel[i]);
+        printf("%i", outputParallel_1[i]);
+        if (i < N - 1) printf(", ");
+    }
+    printf("\n");
+
+    mx::scan<mx::ScanType::Inclusive, mx::detail::ScanAlgorithm::Blelloch>(inputArray, outputParallel_2, N, mx::Sum<int>{}, mx::CPU{6});
+
+    printf("[Parallel] Blelloch Inclusive Scan: \n");
+    for (int i = 0; i < N; i++) {
+        printf("%i", outputParallel_2[i]);
         if (i < N - 1) printf(", ");
     }
     printf("\n");
 
     delete[] inputArray;
     delete[] outputSerial;
-    delete[] outputParallel;
+    delete[] outputParallel_1;
+    delete[] outputParallel_2;
 
     return 0;
 }

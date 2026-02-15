@@ -11,16 +11,16 @@ template <class>
 inline constexpr bool always_false_v = false;
 
 // Main reduce function
-template<ScanType scan_type, typename T, class Op, class Policy>
+template<ScanType scan_type, detail::ScanAlgorithm scan_algo = detail::ScanAlgorithm::Blelloch, typename T, class Op, class Policy>
 void scan(const T* input, T* output, size_t size, Op op, Policy policy){
 
     if constexpr (std::is_same_v<Policy, CPU>)
     {
-        scan_cpu<scan_type>(input, output, size, op, policy.threads);
+        scan_cpu<scan_type, scan_algo>(input, output, size, op, policy.threads);
     }
     // else if constexpr (std::is_same_v<Policy, CUDA>)
     // {
-    //     scan_cuda<scan_type>(input, size, op, policy);
+    //     scan_cuda<scan_type, scan_algo>(input, size, op, policy);
     // }
     else
     {

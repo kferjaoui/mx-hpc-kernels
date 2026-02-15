@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 #include <vector>
 #include <thread>
 #include <barrier>
@@ -46,20 +47,19 @@ void scan_blelloch_core(T* in, size_t size, Op op, int nThreads)
         sync_point.arrive_and_wait();
 
         // 3. down-sweep phase
-        // for(ssize_t stride = (size>>1); stride>0; stride >>=1){ // decreasing strides: [(size/2), (size/4), ..., 2, 1]
-        //     ssize_t offset = (size - 1) - (stride<<1) * tid;  // (N-1) - 2^d * tid
-        //     ssize_t step   = (stride << 1) * nThreads;        
+        for(size_t stride = (size>>1); stride >= 1; stride >>=1){ // decreasing strides: [(size/2), (size/4), ..., 2, 1]
+            // sweep from left to right so keep identical (offset, step) pair than for up-sweep
+            size_t offset = (stride << 1) * (size_t(tid) + 1) - 1;
+            size_t step  = (stride << 1) * nThreads;
             
-        //     for(ssize_t idx = offset; idx>0; idx -= step){
-        //         if((idx - stride) >= 0){
-        //             T tmp = in[idx];
-        //             in[idx] = op(in[idx - stride], in[idx]); // /!\ Associativity: The scan is still happening from left to right so keep the order when applying op()
-        //             in[idx - stride] = tmp;
-        //         } 
-        //     }
-        //     sync_point.arrive_and_wait();
-        // }
-        
+            for(size_t idx = offset; idx < size; idx += step){ 
+                    T tmp = in[idx]; // tmp = right
+                    // IMPORTANT: operand order matters unless op is commutative.
+                    in[idx] = op(tmp, in[idx - stride]); // right = op(tmp, left)
+                    in[idx - stride] = tmp;              // left = tmp
+            }
+            sync_point.arrive_and_wait();
+        }
     };
 
     std::vector<std::thread> threads;
@@ -83,12 +83,9 @@ void exclusive_scan_blelloch(const T* input, T* output, size_t size, Op op, int 
 template<typename T, typename Op>
 void inclusive_scan_blelloch(const T* input, T* output, size_t size, Op op, int nThreads)
 {
-    std:vector<T> inputCopy(size);
-    std::copy(input, input + size, inputCopy.begin());
+    exclusive_scan_blelloch(input, output, size, op, nThreads);
 
-    scan_blelloch_core(inputCopy.data(), output, size, op, nThreads);
-
-    for(size_t i=0; i<size; ++i) output[i] = output[i] + input[i];
+    for(size_t i=0; i<size; ++i) output[i] = op(output[i], input[i]);
 
 }
 
