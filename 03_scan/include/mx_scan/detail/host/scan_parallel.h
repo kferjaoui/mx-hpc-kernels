@@ -1,11 +1,10 @@
 #pragma once
 #include <vector>
-
 #include "mx/utils/operations.h"
 #include "mx_scan/scan_types.h"
 #include "mx_scan/detail/algorithms.h"
-#include "mx_scan/detail/hillis_steele_core.h"
-#include "mx_scan/detail/blelloch_core.h"
+#include "mx_scan/detail/host/hillis_steele.h"
+#include "mx_scan/detail/host/blelloch.h"
 
 namespace mx::detail {
 

@@ -1,6 +1,6 @@
 #pragma once
-#include "mx_scan/detail/scan_serial.h"
-#include "mx_scan/detail/scan_parallel.h"
+#include "mx_scan/detail/host/scan_serial.h"
+#include "mx_scan/detail/host/scan_parallel.h"
 
 namespace mx {
 

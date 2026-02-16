@@ -3,7 +3,7 @@
 #include "mx/utils/policy.h"
 #include "mx/utils/operations.h"
 #include "mx_scan/scan_cpu.h"
-// #include "mx_scan/scan_cuda.h"
+#include "mx_scan/scan_cuda.h"
 
 namespace mx{
 
@@ -18,10 +18,10 @@ void scan(const T* input, T* output, size_t size, Op op, Policy policy){
     {
         scan_cpu<scan_type, scan_algo>(input, output, size, op, policy.threads);
     }
-    // else if constexpr (std::is_same_v<Policy, CUDA>)
-    // {
-    //     scan_cuda<scan_type, scan_algo>(input, size, op, policy);
-    // }
+    else if constexpr (std::is_same_v<Policy, CUDA>)
+    {
+        scan_cuda<scan_type, scan_algo>(input, output, size, op, policy);
+    }
     else
     {
         static_assert(always_false_v<Policy>, "mx::scan: unsupported Policy type");
@@ -30,9 +30,9 @@ void scan(const T* input, T* output, size_t size, Op op, Policy policy){
 
 // Default overload: CPU policy
 template <typename T, class Op>
-T scan(const T* input, size_t size, Op op){
+void scan(const T* input, size_t size, Op op){
     CPU serial_policy{};
-    return scan(input, size, op, serial_policy); // Calls the main reduce function ''reduce<T, Op, Policy>''
+    scan(input, size, op, serial_policy); // Calls the main scan function ''scan<T, Op, Policy>''
 }
 
 } // namespace mx
