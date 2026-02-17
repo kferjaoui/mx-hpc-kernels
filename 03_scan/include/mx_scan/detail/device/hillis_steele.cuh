@@ -5,10 +5,11 @@
 
 namespace mx::detail {
 
+// Only works for pow2 problem sizes that fit within a thread block i.e. <= 1024
 template<ScanType scan_type, typename T, typename Op>
 __global__ void hillis_steele_on_device_monoblock(const T* __restrict__ input,
-                                                                 T* __restrict__ output,
-                                                                 size_t size, Op op)
+                                                  T* __restrict__ output,
+                                                  int size, Op op)
 {
     int tid = threadIdx.x; // 1 block, 1D grid
 

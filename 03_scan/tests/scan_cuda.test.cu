@@ -9,8 +9,11 @@ int main() {
     size_t N = 32;
     int* inputArray = new int[N];
     int* outputSerial = new int[N];
-    int* outputParallel_1 = new int[N];
-    int* outputParallel_2 = new int[N];
+    int* outputParallel_hs1 = new int[N];
+    int* outputParallel_hs2 = new int[N];
+    int* outputParallel_bl1 = new int[N];
+    int* outputParallel_bl2 = new int[N];
+
 
     for (int i=0; i<N; i++) inputArray[i] = i;
 
@@ -34,28 +37,55 @@ int main() {
     printf("\n");
 
     // Parallel 
-    mx::scan<mx::ScanType::Inclusive, mx::detail::ScanAlgorithm::Hillis_Steele>(inputArray, outputParallel_1, N, mx::Sum<int>{}, mx::CUDA{});
+    // 1. Inclusive
 
-    printf("[CUDA] Hillis_Steele Inclusive Scan: \n");
+    printf(">>>>>>>>>>>>>>> Inclusive Scan <<<<<<<<<<<<<<<<\n");
+
+    mx::scan<mx::ScanType::Inclusive, mx::detail::ScanAlgorithm::Hillis_Steele>(inputArray, outputParallel_hs1, N, mx::Sum<int>{}, mx::CUDA{});
+
+    printf("[CUDA] Hillis_Steele: \n");
     for (int i = 0; i < N; i++) {
-        printf("%i", outputParallel_1[i]);
+        printf("%i", outputParallel_hs1[i]);
         if (i < N - 1) printf(", ");
     }
     printf("\n");
 
-    mx::scan<mx::ScanType::Exclusive, mx::detail::ScanAlgorithm::Hillis_Steele>(inputArray, outputParallel_2, N, mx::Sum<int>{}, mx::CUDA{});
+    mx::scan<mx::ScanType::Inclusive, mx::detail::ScanAlgorithm::Blelloch>(inputArray, outputParallel_bl1, N, mx::Sum<int>{}, mx::CUDA{});
 
-    printf("[CUDA] Hillis_Steele Exclusive Scan: \n");
+    printf("[CUDA] Blelloch: \n");
     for (int i = 0; i < N; i++) {
-        printf("%i", outputParallel_2[i]);
+        printf("%i", outputParallel_bl1[i]);
+        if (i < N - 1) printf(", ");
+    }
+    printf("\n");
+    
+    // 2. Exclusive
+    printf(">>>>>>>>>>>>>>> Exclusive Scan <<<<<<<<<<<<<<<<\n");
+
+    mx::scan<mx::ScanType::Exclusive, mx::detail::ScanAlgorithm::Hillis_Steele>(inputArray, outputParallel_hs2, N, mx::Sum<int>{}, mx::CUDA{});
+
+    printf("[CUDA] Hillis_Steele : \n");
+    for (int i = 0; i < N; i++) {
+        printf("%i", outputParallel_hs2[i]);
+        if (i < N - 1) printf(", ");
+    }
+    printf("\n");
+    
+    mx::scan<mx::ScanType::Exclusive, mx::detail::ScanAlgorithm::Blelloch>(inputArray, outputParallel_bl2, N, mx::Sum<int>{}, mx::CUDA{});
+
+    printf("[CUDA] Blelloch: \n");
+    for (int i = 0; i < N; i++) {
+        printf("%i", outputParallel_bl2[i]);
         if (i < N - 1) printf(", ");
     }
     printf("\n");
 
     delete[] inputArray;
     delete[] outputSerial;
-    delete[] outputParallel_1;
-    delete[] outputParallel_2;
+    delete[] outputParallel_hs1;
+    delete[] outputParallel_hs2;
+    delete[] outputParallel_bl1;
+    delete[] outputParallel_bl2;
 
     return 0;
 }
