@@ -1,7 +1,7 @@
 #pragma once
 #include "mx/utils/atomic_ops.cuh"
 
-namespace mx{
+namespace mx::detail {
 
 // Warp shuffle reduction with shared memory
 template<typename T, class Op>
@@ -82,7 +82,7 @@ __global__ void reduce_warp_shuffle(const T* __restrict__ input,
             }
         }
 
-        if (local_tid == 0) atomicOp(result, value, op);
+        if (local_tid == 0) ::mx::device::atomicOp(result, value, op);
     }
 
     // ********************************************************
@@ -96,7 +96,7 @@ __global__ void reduce_warp_shuffle(const T* __restrict__ input,
     //     for (size_t delta=warpSize>>1; delta>0; delta>>=1) {
     //         value = op(value, __shfl_down_sync(mask, value, delta));
     //     }
-    //     if (local_tid == 0) atomicOp(result, value, op);
+    //     if (local_tid == 0) ::mx::device::atomicOp(result, value, op);
     // }
     // ********************************************************
 
@@ -105,7 +105,7 @@ __global__ void reduce_warp_shuffle(const T* __restrict__ input,
     //     if ((local_tid + s) < active ) sh[local_tid] = op(sh[local_tid], sh[local_tid + s]);
     //     __syncthreads();
     // }
-    // if (local_tid == 0) atomicOp(result, sh[0], op);
+    // if (local_tid == 0) ::mx::device::atomicOp(result, sh[0], op);
 }
 
-} //namespace mx
+} //namespace mx::detail

@@ -59,29 +59,29 @@ T reduce_cuda_profiled(const T* input,
     auto launch = [&](){
         switch (kernel) {
             case ReduceKernel::Baseline:
-                reduce_baseline<<<grid, block_size>>>(device_input, device_output, size, op);
+                ::mx::detail::reduce_baseline<<<grid, block_size>>>(device_input, device_output, size, op);
                 break;
             case ReduceKernel::Interleaved:
-                reduce_interleaved_addressing<<<grid, block_size, shmemBytes>>>(device_input, device_output, size, op);
+                ::mx::detail::reduce_interleaved_addressing<<<grid, block_size, shmemBytes>>>(device_input, device_output, size, op);
                 break;
             case ReduceKernel::Sequential:
-                reduce_sequential_addressing<<<grid, block_size, shmemBytes>>>(device_input, device_output, size, op);
+                ::mx::detail::reduce_sequential_addressing<<<grid, block_size, shmemBytes>>>(device_input, device_output, size, op);
                 break;
             case ReduceKernel::WarpShuffle:
-                reduce_warp_shuffle<<<grid, block_size, shmemBytes>>>(device_input, device_output, size, op);
+                ::mx::detail::reduce_warp_shuffle<<<grid, block_size, shmemBytes>>>(device_input, device_output, size, op);
                 break;
             case ReduceKernel::TwoPass:
-                reduce_multiblock_first_pass<<<grid, block_size, shmemBytes>>>(device_input, partials, size, op);
+                ::mx::detail::reduce_multiblock_first_pass<<<grid, block_size, shmemBytes>>>(device_input, partials, size, op);
                 CUDA_CHECK(cudaGetLastError());
                 CUDA_CHECK(cudaDeviceSynchronize());
-                reduce_monoblock_second_pass<<<dim3{1, 1, 1}, block_size, shmemBytes>>>(partials, device_output, grid_size_1d, op);
+                ::mx::detail::reduce_monoblock_second_pass<<<dim3{1, 1, 1}, block_size, shmemBytes>>>(partials, device_output, grid_size_1d, op);
                 break;
         }
     };
 
     // Warmup (also “pays” one-time costs like clock ramp, caching, JIT if any)
     for (int i = 0; i < warmup_iters; ++i) {
-        mx::device::set_scalar<T><<<1,1>>>(device_output, init);
+        ::mx::device::set_scalar<T><<<1,1>>>(device_output, init);
         launch();
     }
     CUDA_CHECK(cudaGetLastError());
@@ -97,7 +97,7 @@ T reduce_cuda_profiled(const T* input,
     float best_ms  = std::numeric_limits<float>::infinity();
 
     for (int i = 0; i < iters; ++i) {
-        mx::device::set_scalar<T><<<1,1>>>(device_output, init);
+        ::mx::device::set_scalar<T><<<1,1>>>(device_output, init);
 
         CUDA_CHECK(cudaEventRecord(start));
         launch();

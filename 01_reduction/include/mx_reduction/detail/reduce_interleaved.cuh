@@ -1,7 +1,7 @@
 #pragma once
 #include "mx/utils/atomic_ops.cuh"
 
-namespace mx{
+namespace mx::detail {
 
 // Shared memory interleaved addressing reduction kernel WITH divergent branching
 // ********************************************************
@@ -40,8 +40,8 @@ __global__ void reduce_interleaved_addressing(const T* __restrict__ input,
 
     // Reduction across all blocks 
     if (local_tid == 0) {
-        atomicOp(&result[0], sh[0], op);
+        ::mx::device::atomicOp(&result[0], sh[0], op);
     }
 }
 
-} // namespace mx
+} // namespace mx::detail

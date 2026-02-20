@@ -5,7 +5,7 @@
 #include "mx/utils/operations.h"
 #include "mx/utils/atomics.cuh"
 
-namespace mx{
+namespace mx::device {
 
 template <typename T, class Op>
 __device__ __forceinline__ void atomicOp(T* result, T reducedV, const Op& op)
@@ -26,8 +26,8 @@ __device__ __forceinline__ void atomicOp(T* result, T reducedV, const Op& op)
     {
         atomicMin(result, reducedV);
     } else {
-        static_assert(!sizeof(Op), "mx::atomicOp: unsupported Op type");
+        static_assert(!sizeof(Op), "mx::device::atomicOp: unsupported Op type");
     }
 }
 
-} // namespace mx
+} // namespace mx::device

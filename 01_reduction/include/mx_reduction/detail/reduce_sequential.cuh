@@ -1,7 +1,7 @@
 #pragma once
 #include "mx/utils/atomic_ops.cuh"
 
-namespace mx{
+namespace mx::detail {
 
 // Shared memory with sequential addressing
 // ********************************************************
@@ -41,7 +41,7 @@ __global__ void reduce_sequential_addressing(const T* __restrict__ input,
     // Reduction across all blocks 
     if (local_tid == 0) {
         // sh[0] holds the per-block reduced value
-        atomicOp(result, sh[0], op);
+        ::mx::device::atomicOp(result, sh[0], op);
     }
 }
 

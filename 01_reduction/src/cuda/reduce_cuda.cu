@@ -40,13 +40,13 @@ T reduce_cuda(const T* input, size_t size, T init, Op op, const CUDA& cuda_polic
     CUDA_CHECK( cudaMemcpy( device_output,  &init,                sizeof(T),                cudaMemcpyHostToDevice ) );
     
     // First pass: reduce input into per-lock partial results
-    reduce_multiblock_first_pass<<<grid, block_size, shmemBytes>>>(device_input, partials, size, op);
+    detail::reduce_multiblock_first_pass<<<grid, block_size, shmemBytes>>>(device_input, partials, size, op);
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
 
     // Second pass: reduce block partials into final result
     dim3 second_pass_grid{1, 1, 1};
-    reduce_monoblock_second_pass<<<second_pass_grid, block_size, shmemBytes>>>(partials, device_output, grid_size_1d, op);
+    detail::reduce_monoblock_second_pass<<<second_pass_grid, block_size, shmemBytes>>>(partials, device_output, grid_size_1d, op);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());

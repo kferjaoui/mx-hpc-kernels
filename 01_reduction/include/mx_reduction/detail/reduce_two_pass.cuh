@@ -1,7 +1,6 @@
 #pragma once
-#include "mx/utils/atomic_ops.cuh"
 
-namespace mx{
+namespace mx::detail {
 
 template<typename T, class Op>
 __global__ void reduce_multiblock_first_pass(const T* __restrict__ input,
@@ -109,4 +108,4 @@ __global__ void reduce_monoblock_second_pass( T* __restrict__ partials,
     }
 }
 
-} //namespace mx
+} //namespace mx::detail

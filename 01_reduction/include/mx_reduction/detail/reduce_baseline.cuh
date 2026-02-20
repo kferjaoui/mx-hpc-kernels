@@ -1,7 +1,7 @@
 #pragma once
 #include "mx/utils/atomic_ops.cuh"
 
-namespace mx{
+namespace mx::detail {
 
 template <typename T, class Op>
 __global__ void reduce_baseline(const T* __restrict__ input, // 2 regiters for double* (8 bytes)
@@ -17,7 +17,7 @@ __global__ void reduce_baseline(const T* __restrict__ input, // 2 regiters for d
         reducedV = op(reducedV, input[idx]);            // At least 3 registers (temporary to store result, offset calculation, address calculation)
     }
 
-    atomicOp(result, reducedV, op);
+    ::mx::device::atomicOp(result, reducedV, op);
 }
 
-} // namespace mx
+} // namespace mx::detail
