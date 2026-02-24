@@ -28,10 +28,15 @@ DEPS_CPU := $(CPU_OBJS:.o=.d)
 
 #binaries
 GPU_BIN := scan_cuda.test
-all: $(GPU_BIN)
-
 CPU_BIN := scan_cpu.test
-all: $(CPU_BIN)
+
+all: $(GPU_BIN) $(CPU_BIN)
+
+# Debug target (overrides OPT and NVCCFLAGS + disables NDEBUG)
+debug: OPT      := -O0 -g
+debug: CXXFLAGS := $(STD) -O0 -g -pthread $(DEPFLAGS)
+debug: NVCCFLAGS := $(STD) $(ARCH) -g -G $(DEPFLAGS)
+debug: $(GPU_BIN) $(CPU_BIN)
 
 #linking
 $(GPU_BIN): $(GPU_OBJS)
