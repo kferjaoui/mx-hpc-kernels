@@ -13,6 +13,9 @@ struct CUDA {
     std::uint32_t grid_y = 1;
     std::uint32_t grid_z = 1;
     std::uintptr_t stream = 0; // 0 == default stream
+
+    bool debug_sync  = false;  // sync after each launch
+    bool debug_print  = false; // enable prints in debug mode
 };
 
 }

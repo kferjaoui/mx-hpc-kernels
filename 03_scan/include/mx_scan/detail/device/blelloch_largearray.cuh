@@ -28,9 +28,6 @@ __global__ void blelloch_multiblock_first_pass(T* input,
     int local_tid = threadIdx.x;
     size_t global_tid = threadIdx.x + blockDim.x * blockIdx.x;
 
-    // extern __shared__ __align__(sizeof(T)) unsigned char smem[];
-    // T* shmem = reinterpret_cast<T*>(smem);
-
     T* shmem = ::mx::device::shared_mem_ptr<T>();
     
     T x = (global_tid < size) ? input[global_tid] : op.identity();

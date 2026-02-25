@@ -1,91 +1,85 @@
-
 #include <cstdio>
+#include <vector>
+#include <algorithm>
 
 #include "mx/utils/operations.h"
 #include "mx/utils/policy.h"
 #include "mx_scan/scan.h"
 
+static void print_preview(const char* label, const std::vector<int>& v, std::size_t k = 8) {
+    std::printf("%s (n=%zu): ", label, v.size());
+    std::size_t n = v.size();
+    std::size_t kk = std::min(k, n);
+    for (std::size_t i = 0; i < kk; ++i) std::printf("%d ", v[i]);
+    if (n > kk) std::printf("... ");
+    if (n > kk) {
+        // show last few too
+        std::size_t start = (n > kk) ? std::max(kk, n - kk) : 0;
+        for (std::size_t i = start; i < n; ++i) std::printf("%d ", v[i]);
+    }
+    std::printf("\n");
+}
+
+static bool equal_vec(const std::vector<int>& a, const std::vector<int>& b) {
+    return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin());
+}
+
+template <mx::ScanType ST, mx::detail::ScanAlgorithm Algo>
+static void run_cuda_case(const char* name,
+                          const std::vector<int>& input,
+                          const std::vector<int>& ref,
+                          mx::CUDA pol)
+{
+    std::vector<int> out(input.size(), 0);
+
+    mx::scan<ST, Algo>(input.data(), out.data(), input.size(), mx::Sum<int>{}, pol);
+
+    print_preview(name, out);
+
+    if (!equal_vec(out, ref)) {
+        std::printf("\033[31m MISMATCH vs CPU reference\033[0m\n");
+    } else {
+        std::printf("\033[32m OK\033[0m\n");
+    }
+}
+
 int main() {
-    size_t N = 1222;
-    int* inputArray = new int[N];
-    int* outputSerial = new int[N];
-    int* outputParallel_hs1 = new int[N];
-    int* outputParallel_hs2 = new int[N];
-    int* outputParallel_bl1 = new int[N];
-    int* outputParallel_bl2 = new int[N];
+    std::size_t N = (1<<30) + 10;
 
+    std::vector<int> input(N, 1);
+    std::vector<int> ref_inclusive(N, 0);
+    std::vector<int> ref_exclusive(N, 0);
 
-    for (int i=0; i<N; i++) inputArray[i] = 1;
+    // CPU references
+    mx::scan<mx::ScanType::Inclusive>(input.data(), ref_inclusive.data(), N, mx::Sum<int>{}, mx::CPU{1});
+    mx::scan<mx::ScanType::Exclusive>(input.data(), ref_exclusive.data(), N, mx::Sum<int>{}, mx::CPU{1});
 
-    // // Print input array
-    // printf("Input: ");
-    // for (int i = 0; i < N; i++) {
-    //     printf("%i", inputArray[i]);
-    //     if (i < N - 1) printf(", ");
-    // }
-    // printf("\n");
+    print_preview("[CPU] inclusive", ref_inclusive);
+    print_preview("[CPU] exclusive", ref_exclusive);
 
-    // Serial 
-    mx::scan<mx::ScanType::Inclusive>(inputArray, outputSerial, N, mx::Sum<int>{}, mx::CPU{});
+    mx::CUDA pol;
+    pol.block = 400;
+    pol.debug_sync = true;
+    pol.debug_print = false;
 
-    // Print result of inclusive scan
-    printf("[Serial] Inclusive Scan: ");
-    for (int i = 0; i < N; i++) {
-        printf("%i", outputSerial[i]);
-        if (i < N - 1) printf(", ");
+    std::printf(">>>>>>>>>>>>>>> CUDA Inclusive <<<<<<<<<<<<<<<<\n");
+    run_cuda_case<mx::ScanType::Inclusive, mx::detail::ScanAlgorithm::Blelloch>(
+        "[CUDA] Blelloch inclusive", input, ref_inclusive, pol);
+
+    // Uncomment when Hillis–Steele is enabled/working for the chosen N
+    if (N <= 1024){
+        run_cuda_case<mx::ScanType::Inclusive, mx::detail::ScanAlgorithm::Hillis_Steele>(
+            "[CUDA] Hillis-Steele inclusive", input, ref_inclusive, pol);
     }
-    printf("\n");
 
-    // Parallel 
-    // 1. Inclusive
+    std::printf(">>>>>>>>>>>>>>> CUDA Exclusive <<<<<<<<<<<<<<<<\n");
+    run_cuda_case<mx::ScanType::Exclusive, mx::detail::ScanAlgorithm::Blelloch>(
+        "[CUDA] Blelloch exclusive", input, ref_exclusive, pol);
 
-    printf(">>>>>>>>>>>>>>> Inclusive Scan <<<<<<<<<<<<<<<<\n");
-
-    // mx::scan<mx::ScanType::Inclusive, mx::detail::ScanAlgorithm::Hillis_Steele>(inputArray, outputParallel_hs1, N, mx::Sum<int>{}, mx::CUDA{});
-
-    // printf("[CUDA] Hillis_Steele: \n");
-    // for (int i = 0; i < N; i++) {
-    //     printf("%i", outputParallel_hs1[i]);
-    //     if (i < N - 1) printf(", ");
-    // }
-    // printf("\n");
-
-    mx::scan<mx::ScanType::Inclusive, mx::detail::ScanAlgorithm::Blelloch>(inputArray, outputParallel_bl1, N, mx::Sum<int>{}, mx::CUDA{});
-
-    printf("[CUDA] Blelloch: \n");
-    for (int i = 0; i < N; i++) {
-        printf("%i", outputParallel_bl1[i]);
-        if (i < N - 1) printf(", ");
+    if (N <= 1024) {
+        run_cuda_case<mx::ScanType::Exclusive, mx::detail::ScanAlgorithm::Hillis_Steele>(
+            "[CUDA] Hillis-Steele exclusive", input, ref_exclusive, pol);
     }
-    printf("\n");
-    
-    // 2. Exclusive
-    printf(">>>>>>>>>>>>>>> Exclusive Scan <<<<<<<<<<<<<<<<\n");
-
-    // mx::scan<mx::ScanType::Exclusive, mx::detail::ScanAlgorithm::Hillis_Steele>(inputArray, outputParallel_hs2, N, mx::Sum<int>{}, mx::CUDA{});
-
-    // printf("[CUDA] Hillis_Steele : \n");
-    // for (int i = 0; i < N; i++) {
-    //     printf("%i", outputParallel_hs2[i]);
-    //     if (i < N - 1) printf(", ");
-    // }
-    // printf("\n");
-    
-    mx::scan<mx::ScanType::Exclusive, mx::detail::ScanAlgorithm::Blelloch>(inputArray, outputParallel_bl2, N, mx::Sum<int>{}, mx::CUDA{});
-
-    printf("[CUDA] Blelloch: \n");
-    for (int i = 0; i < N; i++) {
-        printf("%i", outputParallel_bl2[i]);
-        if (i < N - 1) printf(", ");
-    }
-    printf("\n");
-
-    delete[] inputArray;
-    delete[] outputSerial;
-    delete[] outputParallel_hs1;
-    delete[] outputParallel_hs2;
-    delete[] outputParallel_bl1;
-    delete[] outputParallel_bl2;
 
     return 0;
 }
