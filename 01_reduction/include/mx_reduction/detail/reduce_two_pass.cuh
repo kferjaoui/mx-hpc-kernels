@@ -1,4 +1,5 @@
 #pragma once
+#include "mx/utils/device_utils.cuh"
 
 namespace mx::detail {
 
@@ -18,8 +19,7 @@ __global__ void reduce_multiblock_first_pass(const T* __restrict__ input,
         thread_partial = op(thread_partial, input[idx]);
     }
     
-    extern __shared__ __align__(sizeof(T)) unsigned char smem[];
-    T* sh1 = reinterpret_cast<T*>(smem);
+    T* sh1 = ::mx::device::shared_mem_ptr<T>();
     sh1[local_tid] = thread_partial;
 
     __syncthreads();
@@ -70,8 +70,7 @@ __global__ void reduce_monoblock_second_pass( T* __restrict__ partials,
         thread_partial = op(thread_partial, partials[index]);
     }
 
-    extern __shared__ __align__(sizeof(T)) unsigned char smem[];
-    T* sh2 = reinterpret_cast<T*>(smem);
+    T* sh2 = ::mx::device::shared_mem_ptr<T>();
     sh2[tid] = thread_partial;
 
     __syncthreads();

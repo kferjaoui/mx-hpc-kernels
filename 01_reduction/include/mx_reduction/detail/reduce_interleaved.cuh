@@ -1,5 +1,6 @@
 #pragma once
 #include "mx/utils/atomic_ops.cuh"
+#include "mx/utils/device_utils.cuh"
 
 namespace mx::detail {
 
@@ -24,8 +25,8 @@ __global__ void reduce_interleaved_addressing(const T* __restrict__ input,
         thread_partial = op(thread_partial, input[idx]);
     }
     
-    extern __shared__ __align__(sizeof(T)) unsigned char smem[];
-    T* sh = reinterpret_cast<T*>(smem);
+    T* sh = ::mx::device::shared_mem_ptr<T>();
+
     sh[local_tid] = thread_partial;
 
     __syncthreads();
