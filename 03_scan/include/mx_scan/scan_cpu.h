@@ -5,7 +5,7 @@
 namespace mx {
 
 template<ScanType scan_type, detail::ScanAlgorithm scan_algo = detail::ScanAlgorithm::Blelloch, typename T, typename Op>
-void scan_cpu(const T* input, T* output, size_t size, Op op, int nThreads = 1){
+void scan_cpu(const T* input, T* output, size_t size, const Op& op, int nThreads = 1){
     if (size == 0) return;
 
     if (nThreads <= 1) 

@@ -1,13 +1,11 @@
 #pragma once
+#include "mx/utils/meta.h"
 #include "mx/utils/policy.h"
 #include "mx/utils/operations.h"
 #include "mx_reduction/reduce_cpu.h"
 #include "mx_reduction/reduce_cuda.h"
 
 namespace mx{
-
-template <class> 
-inline constexpr bool always_false_v = false;
 
 // Main reduce function
 template<typename T, class Op, class Policy>

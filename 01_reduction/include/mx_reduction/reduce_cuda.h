@@ -1,6 +1,6 @@
 #pragma once
-#include <cuda_runtime.h>
-
+// #include <cuda_runtime.h>
+#include <cstdlib>
 #include "mx/utils/policy.h"
 #include "mx/utils/operations.h"
 

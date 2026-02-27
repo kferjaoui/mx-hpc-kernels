@@ -9,7 +9,7 @@ namespace mx::detail {
 
 // Core Hillis–Steele: computes inclusive scan of `in` into `out`
 template<typename T, typename Op>
-void scan_hillis_steele_core(T* in, T* out, size_t size, Op op, int nThreads)
+void scan_hillis_steele_core(T* in, T* out, size_t size, const Op& op, int nThreads)
 {
     T* original_out = out;
 
@@ -41,7 +41,7 @@ void scan_hillis_steele_core(T* in, T* out, size_t size, Op op, int nThreads)
 
 // Inclusive Hillis–Steele
 template<typename T, typename Op>
-void inclusive_scan_hillis_steele(const T* input, T* output, size_t size, Op op, int nThreads)
+void inclusive_scan_hillis_steele(const T* input, T* output, size_t size, const Op& op, int nThreads)
 {
     // Duplicate input to avoid in-place scan
     std::vector<T> inputCopy(size); 
@@ -52,7 +52,7 @@ void inclusive_scan_hillis_steele(const T* input, T* output, size_t size, Op op,
 
 // Exclusive Hillis–Steele
 template<typename T, typename Op>
-void exclusive_scan_hillis_steele(const T* input, T* output, size_t size, Op op, int nThreads)
+void exclusive_scan_hillis_steele(const T* input, T* output, size_t size, const Op& op, int nThreads)
 {
     // Right-shifted input: [id, x0, x1, ..., x_{n-2}]
     std::vector<T> input_rshifted(size);

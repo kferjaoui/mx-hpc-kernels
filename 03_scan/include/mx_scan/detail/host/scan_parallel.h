@@ -9,7 +9,7 @@
 namespace mx::detail {
 
 template<ScanType scan_type, ScanAlgorithm scan_algo = ScanAlgorithm::Blelloch,  typename T, typename Op>
-void scan_parallel(const T* input, T* output, size_t size, Op op, int nThreads)
+void scan_parallel(const T* input, T* output, size_t size, const Op& op, int nThreads)
 {
     if constexpr (scan_type == ScanType::Exclusive)
     {

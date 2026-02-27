@@ -66,7 +66,7 @@ int main() {
     run_cuda_case<mx::ScanType::Inclusive, mx::detail::ScanAlgorithm::Blelloch>(
         "[CUDA] Blelloch inclusive", input, ref_inclusive, pol);
 
-    // Uncomment when Hillis–Steele is enabled/working for the chosen N
+    // Hillis–Steele is enabled for N <= 1024
     if (N <= 1024){
         run_cuda_case<mx::ScanType::Inclusive, mx::detail::ScanAlgorithm::Hillis_Steele>(
             "[CUDA] Hillis-Steele inclusive", input, ref_inclusive, pol);
