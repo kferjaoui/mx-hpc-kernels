@@ -5,6 +5,7 @@
 #include"gemm_parallel.h"
 #include"mx/dense.h"
 #include"mx/dense_view.h"
+#include"mx/utils/parallel.h"
 
 namespace mx{
 
@@ -96,7 +97,7 @@ void gemm_cpu_threads_cache_blocked(const T alpha,
         }     
     };
 
-    mx_detail::launch_threads(numThreads, workFunction);
+    launch_threads(workFunction, numThreads);
 
 }
 

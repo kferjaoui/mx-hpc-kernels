@@ -5,10 +5,11 @@
 #include"gemm_parallel.h"
 #include"mx/dense.h"
 #include"mx/dense_view.h"
+#include"mx/utils/parallel.h"
 
 namespace mx{
 
-namespace mx_detail{
+namespace detail{
     
 struct BlockParameters {
     const index_t nc = 256; // rows of A/C per block
@@ -61,11 +62,11 @@ void parallel_blocked_impl(index_t N, index_t K, index_t M,
     
     // std::cout << "[Blocked //] Spawning "<< numThreads << " concurrent threads...\n";
 
-    launch_threads(numThreads, workFunction);
+    launch_threads(workFunction, numThreads);
 
 }
 
-} // namespace mx_detail
+} // namespace detail
 
 // Public APIs:
 
@@ -108,7 +109,7 @@ void gemm_cpu_threads_cache_blocked_experimental(const T alpha,
         }
     }
 
-    mx_detail::BlockParameters block_params{};
+    detail::BlockParameters block_params{};
 
     auto gemm_kernel = [&](index_t ic, index_t iend, index_t jc, index_t jend, index_t pc, index_t pend){
         for(index_t i=ic; i<iend; i++){
@@ -122,7 +123,7 @@ void gemm_cpu_threads_cache_blocked_experimental(const T alpha,
         }
     };
 
-    mx_detail::parallel_blocked_impl(N,K, M, numThreads, block_params, gemm_kernel);
+    detail::parallel_blocked_impl(N,K, M, numThreads, block_params, gemm_kernel);
 
 }
 

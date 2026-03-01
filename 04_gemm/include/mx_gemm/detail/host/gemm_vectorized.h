@@ -2,9 +2,9 @@
 #include<cassert>
 #include<thread>
 #include<cmath>
-// #include"gemm_parallel.h"
 #include"mx/dense.h"
 #include"mx/dense_view.h"
+#include"mx/utils/parallel.h"
 
 #include <experimental/simd>
 
@@ -175,7 +175,7 @@ void gemm_cpu_threads_vectorized(const T alpha,
         }        //Mi
     };
 
-    mx_detail::launch_threads(numThreads, workFunction);
+    launch_threads(workFunction, numThreads);
 
 }
 

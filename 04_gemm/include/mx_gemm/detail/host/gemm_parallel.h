@@ -4,25 +4,11 @@
 #include<cmath>
 #include"mx/dense.h"
 #include"mx/dense_view.h"
+#include"mx/utils/parallel.h"
 
 namespace mx{
 
-namespace mx_detail{
-
-template <class Worker>
-void launch_threads(index_t numThreads, Worker&& worker){
-    std::vector<std::thread> threads;
-    threads.reserve(numThreads);
-
-    for(index_t tid=0; tid<numThreads; tid++){
-        threads.emplace_back(worker, tid);
-    }
-
-    for(auto& t:threads){
-        if(t.joinable()) t.join();
-    }
-
-}
+namespace detail{
 
 struct CyclicScheduler {
     template<class F>
@@ -86,21 +72,23 @@ void gemm_cpu_threads_impl(const T alpha,
     }
 
     auto worker = [&, N, M, K, numThreads](index_t tid) {
-        sched(tid, numThreads, N, [&](index_t i) {
-            for (index_t j = 0; j < M; ++j) {
-                T sum{};
-                for (index_t k = 0; k < K; ++k) {
-                    sum += A(i, k) * BT(j, k);
+        sched(tid, numThreads, N, 
+            [&](index_t i) {
+                for (index_t j = 0; j < M; ++j) {
+                    T sum{};
+                    for (index_t k = 0; k < K; ++k) {
+                        sum += A(i, k) * BT(j, k);
+                    }
+                    C(i, j) += alpha * sum;
                 }
-                C(i, j) += alpha * sum;
             }
-        });
+        );
     };
 
-    launch_threads(numThreads, worker);
+    launch_threads(worker, numThreads);
 }
 
-} // mx_detail
+} // detail
 
 // Public APIs:
 
@@ -124,7 +112,7 @@ void gemm_cpu_threads_cyclic(const T alpha,
                              DenseView<T, Layout> C, 
                              index_t numThreads = 8)
 {
-    gemm_cpu_threads_impl(alpha, A, B, beta, C, numThreads, mx_detail::CyclicScheduler{});
+    gemm_cpu_threads_impl(alpha, A, B, beta, C, numThreads, detail::CyclicScheduler{});
 }
 
 // Row-Blocked parallel pattern
@@ -147,7 +135,7 @@ void gemm_cpu_threads_block(const T alpha,
                             DenseView<T, Layout> C, 
                             index_t numThreads = 8)
 {
-    gemm_cpu_threads_impl(alpha, A, B, beta, C, numThreads, mx_detail::BlockScheduler{});
+    gemm_cpu_threads_impl(alpha, A, B, beta, C, numThreads, detail::BlockScheduler{});
 }
 
 } // mx
