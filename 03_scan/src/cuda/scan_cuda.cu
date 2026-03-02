@@ -34,13 +34,13 @@ void scan_cuda(const T* input, T* output, size_t size, const Op& op, const CUDA&
 // Explicit template instantiations for supported types and operations
 #define INSTANTIATE_SCAN(T, OpName)                                                        \
     template void scan_cuda<ScanType::Inclusive,  detail::ScanAlgorithm::Blelloch>(         \
-        const T*, T*, size_t, OpName<T>, const CUDA&);                                 \
+        const T*, T*, size_t, const OpName<T>&, const CUDA&);                                 \
     template void scan_cuda<ScanType::Inclusive,  detail::ScanAlgorithm::Hillis_Steele>(    \
-        const T*, T*, size_t, OpName<T>, const CUDA&);                                 \
+        const T*, T*, size_t, const OpName<T>&, const CUDA&);                                 \
     template void scan_cuda<ScanType::Exclusive,  detail::ScanAlgorithm::Blelloch>(         \
-        const T*, T*, size_t, OpName<T>, const CUDA&);                                 \
+        const T*, T*, size_t, const OpName<T>&, const CUDA&);                                 \
     template void scan_cuda<ScanType::Exclusive,  detail::ScanAlgorithm::Hillis_Steele>(    \
-        const T*, T*, size_t, OpName<T>, const CUDA&);
+        const T*, T*, size_t, const OpName<T>&, const CUDA&);
 
 #define INSTANTIATE_SCAN_ALL_OPS(T)  \
     INSTANTIATE_SCAN(T, Sum)         \
