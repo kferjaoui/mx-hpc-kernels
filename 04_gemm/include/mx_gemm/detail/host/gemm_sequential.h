@@ -4,6 +4,7 @@
 #include"mx/dense.h"
 #include"mx/dense_view.h"
 #include"mx/layout.h"
+#include"mx/transpose.h"
 
 namespace mx{
     
@@ -85,31 +86,7 @@ void gemm_transposed (const T alpha,
 
         // Materialize the B_transposed for better locality for RowMajor operations
         Dense<T, RowMajor> BT(M,K);
-
-        // // / ! \ NOTE:
-        // // In the below implementation, you have good locality in the BT(c,r) writes only; bad locality for B(r,c) reads. 
-        
-        // for(index_t c=0; c<M; c++){ // Col loop first for sequential writes to BT
-        //     for(index_t r=0; r<K; r++){
-        //         BT(c,r) = B(r,c); 
-        //     }
-        // }
-
-        // // -> The tiling of the transposition (below) allows to have good locality for both !!
-
-        // Tiled transposition of B into BT 
-        // Total of ceil(K/TILE_1) x ceil(M/TILE_1) tiles
-        for(index_t c0=0; c0<M; c0+=TILE_L1){
-            for(index_t r0=0; r0<K; r0+=TILE_L1){
-                index_t c0_end = std::min(M, c0 + TILE_L1);
-                index_t r0_end = std::min(K, r0 + TILE_L1);
-                for(index_t c=c0; c<c0_end; c++){
-                    for(index_t r=r0; r<r0_end; r++){
-                        BT(c,r) = B(r,c);
-                    } // r: row indices inside the tile 
-                } // c: column indices inside the tile
-            } // r0: row start index of tile
-        } // c0: column start index of tile
+        transpose_matrix_tiled(B, BT.view(), TILE_L1);
         
         for(index_t i=0; i<N; i++){
             for(index_t j=0; j<M; j++){
@@ -124,17 +101,7 @@ void gemm_transposed (const T alpha,
 
         // Materialize the A_transposed for better locality for ColMajor operations
         Dense<T, ColMajor> AT(K, N);
-        for(index_t r0=0; r0<N; r0+=TILE_L1){
-            for(index_t c0=0; c0<K; c0+=TILE_L1){
-                index_t r0_end = std::min(N, r0 + TILE_L1);
-                index_t c0_end = std::min(K, c0 + TILE_L1);
-                for(index_t r=r0; r<r0_end; r++){
-                    for(index_t c=c0; c<c0_end; c++){
-                        AT(c,r) = A(r,c);
-                    } 
-                }
-            }
-        }
+        transpose_matrix_tiled(A, AT.view(), TILE_L1);
 
         // First loop on columns offers better locality for I/O on C matrix in with ColMajor layout
         for(index_t j=0; j<M; j++){
