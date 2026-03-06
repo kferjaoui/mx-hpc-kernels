@@ -133,52 +133,68 @@ void gemm_cache_blocked(const T alpha,
 
     using AView = DenseView<const T, Layout>;
 
-    // Tiling parameters (same for both layouts)
-    const index_t nc = 256; // rows of A/C per block
-    const index_t kc = 256; // depth of A/B per block
-    const index_t mc = 96; // columns of B/C per block
-
-    const index_t Nb = (N + nc - 1) / nc; // number of row blocks 
-    const index_t Kb = (K + kc - 1) / kc; // number of depth blocks
-    const index_t Mb = (M + mc - 1) / mc; // number of column blocks
+    // *** Tiling parameters ***
+    // -> Highly dependent on the cache sizes of the target architecture, 
+    // especially L1 and L2 cache for a 1-layer tiling 
+    // Idea: Keep A-tile, BT-tile and C-tile reasonably L2-friendly
+    // i.e. sizeof(A_tile) + sizeof(BT_tile) + sizeof(C_tile) < L2_cache_size (~ 60% - 70% of total is comfortable)
+    // Computation for the 1MB L2 cache for my i9-7940X CPU (Skylake-X):
+    const index_t nc = 256; // N tile; rows of A/C per tile 
+    const index_t kc = 128; // K tile; depth of A/B per tile
+    const index_t mc = 160; // M tile; columns of B/C per tile
 
     if constexpr (AView::is_row_major) {// Row-major: transpose B to get contiguous access in k
 
-        // scale C by beta
-        if (beta != T{1}) {
-            // loop order for better locality in RowMajor
-            for(index_t r=0; r<N; r++)
-                for(index_t c=0; c<M; c++) 
-                    C(r,c) *= beta;
+        // Quick outs
+        if (alpha == T{0}) {
+            if (beta == T{0}) {
+                for (index_t i = 0; i < N; ++i)
+                    for (index_t j = 0; j < M; ++j)
+                        C(i,j) = T{0};
+            } else if (beta != T{1}) {
+                for (index_t i = 0; i < N; ++i)
+                    for (index_t j = 0; j < M; ++j)
+                        C(i,j) *= beta;
+            }
+            return;
+        }
+
+        // Scale C once (avoid doing it inside the K-loop)
+        if (beta == T{0}) {
+            for (index_t i = 0; i < N; ++i)
+                for (index_t j = 0; j < M; ++j)
+                    C(i,j) = T{0};
+        } else if (beta != T{1}) {
+            for (index_t i = 0; i < N; ++i)
+                for (index_t j = 0; j < M; ++j)
+                    C(i,j) *= beta;
         }
 
         // Transpose B into BT for better locality
         Dense<T, Layout> BT(M, K);
-        for (index_t r = 0; r < K; ++r) {
-            for (index_t c = 0; c < M; ++c) {
-                BT(c, r) = B(r, c); // BT(j,k) = B(k,j)
-            }
-        }
+        transpose_matrix_tiled(B, BT.view()/* , TILE_L1=32*/);
 
-        for (index_t Mi = 0; Mi < Mb; ++Mi) {
-            const index_t jc   = Mi * mc;
-            const index_t jend = std::min(jc + mc, M);
+        // IKJ tile ordering, then {i,j,k} multiply order within tiles
+        for (index_t i0 = 0; i0 < N; i0 += nc) {
+            const index_t i_end = std::min<index_t>(N, i0 + nc);
 
-            for (index_t Ki = 0; Ki < Kb; ++Ki) {
-                const index_t pc   = Ki * kc;
-                const index_t pend = std::min(pc + kc, K);
+            for (index_t k0 = 0; k0 < K; k0 += kc) {
+                const index_t k_end = std::min<index_t>(K, k0 + kc);
 
-                for (index_t Ni = 0; Ni < Nb; ++Ni) {
-                    const index_t ic   = Ni * nc;
-                    const index_t iend = std::min(ic + nc, N);
+                for (index_t j0 = 0; j0 < M; j0 += mc) {
+                    const index_t j_end = std::min<index_t>(M, j0 + mc);
 
-                    // C_block(Ni,Mi) += A_block(Ni,Ki) * B_block(Ki,Mi) 
-                    for (index_t i = ic; i < iend; ++i) {
-                        for (index_t j = jc; j < jend; ++j) {
-                            T sum{}; // register accumulator
-                            for (index_t p = pc; p < pend; ++p) {
-                                // A(i,p) and BT(j,p) both contiguous in p for RowMajor
-                                sum += A(i,p) * BT(j,p);
+                    // Tile-tile multiply with inner order i, j, k
+                    // The access pattern is optimized for RowMajor reads/writes on C 
+                    // and pretty good for L2-resident tiles of A
+                    for (index_t i = i0; i < i_end; ++i) {
+                        for (index_t j = j0; j < j_end; ++j) {
+                            T sum = T{0};
+
+                            // Partial tile C_K(I,J) += A(I,K) * B(K,J) at fixed depth K of size {k0:k_end}
+                            // A(i,k) and BT(j,k) both contiguous in k for RowMajor
+                            for (index_t k = k0; k < k_end; ++k) {
+                                sum += A(i,k) * BT(j,k);
                             }
                             C(i,j) += alpha * sum;
                         }
@@ -187,41 +203,80 @@ void gemm_cache_blocked(const T alpha,
             }
         }
 
+        // // Alternative: JKI tile ordering, then {i,j,k} multiply order within tiles
+        // for (index_t j0 = 0; j0 < M; j0 += mc) {
+        //     const index_t j_end = std::min<index_t>(M, j0 + mc);
+            
+        //     for (index_t k0 = 0; k0 < K; k0 += kc) {
+        //         const index_t k_end = std::min<index_t>(K, k0 + kc);
+                
+        //         for (index_t i0 = 0; i0 < N; i0 += nc) {
+        //             const index_t i_end = std::min<index_t>(N, i0 + nc);
+
+        //             // Keep {i,j,k} order for tile-tile multiply (C-friedly) 
+        //             for (index_t i = i0; i < i_end; ++i) {
+        //                     for (index_t j = j0; j < j_end; ++j) {
+        //                     T sum = T{0};
+
+        //                     for (index_t k = k0; k < k_end; ++k) {
+        //                         sum += A(i,k) * BT(j,k);
+        //                     }
+        //                     C(i,j) += alpha * sum;
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+
     } else {// Col-major: transpose A instead, keep B, walk k down columns
 
-        if (beta != T{1}) {
-            // loop order for better locality in ColMajor
-            for(index_t c=0; c<M; c++) 
-                for(index_t r=0; r<N; r++)
-                    C(r,c) *= beta;
-        }
-
-        // Transpose A into AT for better locality
-        Dense<T, Layout> AT(K, N);
-        for (index_t r = 0; r < N; ++r) {
-            for (index_t c = 0; c < K; ++c) {
-                AT(c, r) = A(r, c); // AT(p,i) = A(i,p)
+        // Quick outs
+        if (alpha == T{0}) {
+            if (beta == T{0}) {
+                for (index_t j = 0; j < M; ++j)
+                    for (index_t i = 0; i < N; ++i)
+                        C(i,j) = T{0};
+            } else if (beta != T{1}) {
+                for (index_t j = 0; j < M; ++j)
+                    for (index_t i = 0; i < N; ++i)
+                        C(i,j) *= beta;
             }
+            return;
         }
 
-        for (index_t Mi = 0; Mi < Mb; ++Mi) {
-            const index_t jc   = Mi * mc;
-            const index_t jend = std::min(jc + mc, M);
+        // Scale C once (avoid doing it inside the K-loop)
+        if (beta == T{0}) {
+            for (index_t j = 0; j < M; ++j)
+                for (index_t i = 0; i < N; ++i)
+                    C(i,j) = T{0};
+        } else if (beta != T{1}) {
+            for (index_t j = 0; j < M; ++j)
+                for (index_t i = 0; i < N; ++i)
+                    C(i,j) *= beta;
+        }
 
-            for (index_t Ki = 0; Ki < Kb; ++Ki) {
-                const index_t pc   = Ki * kc;
-                const index_t pend = std::min(pc + kc, K);
+        // Transpose A into AT so that the k-dimension is contiguous in ColMajor
+        Dense<T, Layout> AT(K, N);
+        transpose_matrix_tiled(A, AT.view()/* , TILE_L1=32*/);
 
-                for (index_t Ni = 0; Ni < Nb; ++Ni) {
-                    const index_t ic   = Ni * nc;
-                    const index_t iend = std::min(ic + nc, N);
+        // IKJ tile ordering, then {j,i,k} order for innermost loops
+        for (index_t i0 = 0; i0 < N; i0 += nc) {
+            const index_t i_end = std::min<index_t>(N, i0 + nc);
 
-                    for (index_t i = ic; i < iend; ++i) {
-                        for (index_t j = jc; j < jend; ++j) {
-                            T sum{};
-                            for (index_t p = pc; p < pend; ++p) {
-                                // For ColMajor, both AT(p,i) and B(p,j) are contiguous in p
-                                sum += AT(p, i) * B(p, j);
+            for (index_t k0 = 0; k0 < K; k0 += kc) {
+                const index_t k_end = std::min<index_t>(K, k0 + kc);
+
+                for (index_t j0 = 0; j0 < M; j0 += mc) {
+                    const index_t j_end = std::min<index_t>(M, j0 + mc);
+
+                    // Tile-tile multiply with inner order j, i, k
+                    // The access pattern is optimized for ColMajor reads/writes on C
+                    for (index_t j = j0; j < j_end; ++j) {
+                            for (index_t i = i0; i < i_end; ++i) {
+                            T sum = T{0};
+
+                            for (index_t k = k0; k < k_end; ++k) {
+                                sum += AT(k,i) * B(k,j);
                             }
                             C(i,j) += alpha * sum;
                         }

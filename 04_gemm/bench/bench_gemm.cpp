@@ -68,11 +68,12 @@ int main() {
 
     // ---- Reference: Eigen ----
 
-    #ifdef EIGEN_USE_BLAS
-        std::cout << "Eigen is using BLAS\n";
-    #endif
     #ifdef EIGEN_USE_MKL_ALL
-        std::cout << "Eigen is using Intel MKL\n";
+        std::cout << "Eigen was compiled with Intel MKL support enabled\n";
+    #elif defined(EIGEN_USE_BLAS)
+        std::cout << "Eigen was compiled with BLAS support enabled\n";
+    #else
+        std::cout << "Eigen is using its internal kernels\n";
     #endif
 
     Matrix A_eigen = A.to_eigen();
