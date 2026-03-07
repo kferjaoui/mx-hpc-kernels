@@ -117,6 +117,14 @@ public:
     [[nodiscard]] index_t rows() const noexcept { return _rows; }
     [[nodiscard]] index_t cols() const noexcept { return _cols; }
     [[nodiscard]] index_t size() const noexcept { return _size; }
+    [[nodiscard]] index_t row_stride() const noexcept { 
+        if(row_major) return _cols; 
+        else return 1;
+    }
+    [[nodiscard]] index_t col_stride() const noexcept { 
+        if(row_major) return 1; 
+        else return _rows;
+    }
 
     T*       data() noexcept       { return _data.data(); }
     const T* data() const noexcept { return _data.data(); }

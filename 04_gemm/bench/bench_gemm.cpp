@@ -15,7 +15,7 @@ int main() {
 
     // ---- Configuration ----
 
-    constexpr size_t   N_ATTEMPTS = 10;
+    constexpr size_t   N_ATTEMPTS = 3;
     constexpr size_t   DIM        = 2000;
     constexpr double   ALPHA      = 1.0;
     constexpr double   BETA       = 2.0;
@@ -106,6 +106,10 @@ int main() {
 
     benchmark("GEMM Cache Blocked", Z, naive_time, N_ATTEMPTS, [&]() {
         mx::gemm_cache_blocked(ALPHA, A, B, BETA, C);
+    });
+
+    benchmark("GEMM Microkernel", Z, naive_time, N_ATTEMPTS, [&]() {
+        mx::gemm_microkernel(ALPHA, A, B, BETA, C);
     });
 
     // ---- Parallel GEMMs (RowMajor only) ----
