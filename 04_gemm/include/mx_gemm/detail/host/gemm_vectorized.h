@@ -4,6 +4,7 @@
 #include<cmath>
 #include"mx/dense.h"
 #include"mx/dense_view.h"
+#include"mx/scale_matrix.h"
 #include"mx/utils/parallel.h"
 
 #include <experimental/simd>
@@ -43,11 +44,11 @@ void gemm_cpu_threads_vectorized(const T alpha,
     if (N == 0 || M == 0 || K == 0) return;
 
     // scale C by beta
-    if (beta != T{1}) {
-        for(index_t r=0; r<N; r++)
-            for(index_t c=0; c<M; c++)
-                C(r,c) *= beta;
+    if (alpha == T{0}) {
+        scale_matrix(beta, C);
+        return;
     }
+    scale_matrix(beta, C);
 
     const index_t nc = 256; // rows of A/C per block
     const index_t kc = 256; // depth of A/B per block
@@ -106,8 +107,7 @@ void gemm_cpu_threads_vectorized(const T alpha,
                             index_t j=0;
                             for(; j < j_valid; j+=W){
                                 const index_t j0_simd = j + j0_micro;
-                                vT acc[nr];
-                                for(index_t i=0; i<nr; i++) acc[i] = vT{};
+                                vT acc[nr]{0};
                                 for(index_t jv=0; jv < std::min(W, j_valid-j); jv++) mask[jv] = true; // set the valid lanes in the mask
 
                                 // Unroll the K-loop by 8

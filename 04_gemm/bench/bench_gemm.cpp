@@ -111,6 +111,10 @@ int main() {
     benchmark("GEMM Microkernel", Z, naive_time, N_ATTEMPTS, [&]() {
         mx::gemm_microkernel(ALPHA, A, B, BETA, C);
     });
+    
+    benchmark("GEMM SIMD Vectorized", Z, naive_time, N_ATTEMPTS, [&]() {
+        mx::gemm_vectorized(ALPHA, A, B, BETA, C);
+    });
 
     // ---- Parallel GEMMs (RowMajor only) ----
 
