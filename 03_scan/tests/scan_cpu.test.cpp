@@ -29,7 +29,7 @@ template <mx::ScanType ST, mx::detail::ScanAlgorithm Algo>
 static void run_case_on_cpu(const char* name,
                           const std::vector<int>& input,
                           const std::vector<int>& ref,
-                          mx::CPU pol)
+                          mx::CPU<> pol)
 {
     std::vector<int> out(input.size(), 0);
 
@@ -52,8 +52,8 @@ int main() {
     std::vector<int> ref_exclusive(N, 0);
 
     // Sequential CPU references
-    mx::scan<mx::ScanType::Inclusive>(input.data(), ref_inclusive.data(), N, mx::Sum<int>{});
-    mx::scan<mx::ScanType::Exclusive>(input.data(), ref_exclusive.data(), N, mx::Sum<int>{});
+    mx::scan<mx::ScanType::Inclusive>(input.data(), ref_inclusive.data(), N, mx::Sum<int>{}, mx::CPU<>{});
+    mx::scan<mx::ScanType::Exclusive>(input.data(), ref_exclusive.data(), N, mx::Sum<int>{}, mx::CPU<>{});
 
     print_preview("[CPU] inclusive", ref_inclusive);
     print_preview("[CPU] exclusive", ref_exclusive);
@@ -61,7 +61,7 @@ int main() {
     int nThreads{1};
     printf("Choose number of threads (max %i): \n", std::thread::hardware_concurrency());
     std::cin >> nThreads; 
-    mx::CPU pol{nThreads};
+    mx::CPU<> pol{nThreads};
 
     std::printf(">>>>>>>>>>>>>>> CPU Inclusive <<<<<<<<<<<<<<<<\n");
     run_case_on_cpu<mx::ScanType::Inclusive, mx::detail::ScanAlgorithm::Blelloch>(

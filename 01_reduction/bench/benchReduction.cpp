@@ -40,14 +40,14 @@ int main() {
     std::cout << ">>>> MX library <<<<" << std::endl;
 
     start = CycleTimer::currentSeconds();
-    dataType computed_sum_cpu_serial_mx = mx::profile::reduce_profiled(vSum.data(), vSum.size(), static_cast<dataType>(0), mx::Sum<dataType>{}, mx::CPU{1});
+    dataType computed_sum_cpu_serial_mx = mx::profile::reduce_profiled(vSum.data(), vSum.size(), static_cast<dataType>(0), mx::Sum<dataType>{}, mx::CPU<>{1});
     end = CycleTimer::currentSeconds();
     printf("[Serial] Time: %f seconds, sum=%f\n", end - start, static_cast<double>(computed_sum_cpu_serial_mx));
 
     std::cout << std::endl;
 
     start = CycleTimer::currentSeconds();
-    dataType computed_sum_cpu_parallel_mx = mx::profile::reduce_profiled(vSum.data(), vSum.size(), static_cast<dataType>(0), mx::Sum<dataType>{}, mx::CPU{2});
+    dataType computed_sum_cpu_parallel_mx = mx::profile::reduce_profiled(vSum.data(), vSum.size(), static_cast<dataType>(0), mx::Sum<dataType>{}, mx::CPU<>{2});
     end = CycleTimer::currentSeconds();
     printf("[Parallel] Time: %f seconds, sum=%f\n", end - start, static_cast<double>(computed_sum_cpu_parallel_mx));
 
@@ -92,14 +92,14 @@ int main() {
     
     // CPU Reduction (mx::reduce with parallel policy)
     start = CycleTimer::currentSeconds();
-    dataType computed_prod_cpu_serial_mx = mx::profile::reduce_profiled(vProd.data(), vProd.size(), static_cast<dataType>(1.0), mx::Multiply<dataType>{}, mx::CPU{1});
+    dataType computed_prod_cpu_serial_mx = mx::profile::reduce_profiled(vProd.data(), vProd.size(), static_cast<dataType>(1.0), mx::Multiply<dataType>{}, mx::CPU<>{1});
     end = CycleTimer::currentSeconds();
     printf("[Serial] Time: %f seconds, prod=%f\n", end - start, static_cast<double>(computed_prod_cpu_serial_mx));
 
     std::cout << std::endl;
 
     start = CycleTimer::currentSeconds();
-    dataType computed_prod_cpu_parallel_mx = mx::profile::reduce_profiled(vProd.data(), vProd.size(), static_cast<dataType>(1.0), mx::Multiply<dataType>{}, mx::CPU{2});
+    dataType computed_prod_cpu_parallel_mx = mx::profile::reduce_profiled(vProd.data(), vProd.size(), static_cast<dataType>(1.0), mx::Multiply<dataType>{}, mx::CPU<>{2});
     end = CycleTimer::currentSeconds();
     printf("[Parallel] Time: %f seconds, prod=%f\n", end - start, static_cast<double>(computed_prod_cpu_parallel_mx));
 

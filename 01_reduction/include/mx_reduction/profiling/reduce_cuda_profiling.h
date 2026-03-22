@@ -1,5 +1,4 @@
 #pragma once
-#include <cuda_runtime.h>
 
 #include "mx/utils/policy.h"
 #include "mx/utils/operations.h"

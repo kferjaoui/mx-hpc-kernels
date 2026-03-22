@@ -8,14 +8,14 @@
 namespace mx{
 
 // Main reduce function
-template<typename T, class Op, class Policy>
-T reduce(const T* input, size_t size, T init, Op op, Policy policy){
+template<typename T, class Op, class Policy = CPU<>>
+T reduce(const T* input, size_t size, T init, Op op, Policy policy = Policy{}){
 
-    if constexpr (std::is_same_v<Policy, CPU>) 
+    if constexpr (is_cpu_policy_v<Policy>)
     {
         return reduce_cpu(input, size, init, op, policy.threads);
     }
-    else if constexpr (std::is_same_v<Policy, CUDA>)
+    else if constexpr (is_cuda_policy_v<Policy>)
     {
         return reduce_cuda(input, size, init, op, policy);
     }
@@ -23,13 +23,6 @@ T reduce(const T* input, size_t size, T init, Op op, Policy policy){
     {
         static_assert(always_false_v<Policy>, "mx::reduce: unsupported Policy type");
     }
-}
-
-// Default overload: CPU policy
-template <typename T, class Op>
-T reduce(const T* input, size_t size, T init, Op op){
-    CPU serial_policy{};
-    return reduce(input, size, init, op, serial_policy); // Calls the main reduce function ''reduce<T, Op, Policy>''
 }
 
 } // namespace mx
