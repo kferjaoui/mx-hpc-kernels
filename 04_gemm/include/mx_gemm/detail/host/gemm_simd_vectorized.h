@@ -115,9 +115,7 @@ void gemm_vectorized(const T alpha,
 
                                     for (index_t k = k0; k < k_end; ++k) {
                                         for(index_t j_simd = 0; j_simd < mr_simd; ++j_simd){
-                                            // create a simd vector for the contiguous elements of B
-                                            vT b_vec{}; // one simd load, reused for all rows `il` in the A micro-panel
-
+                                            vT b_vec{}; // create a simd vector for the contiguous elements of B
                                             stdx::where(mask[j_simd], b_vec).copy_from(&B(k, j + j_simd*W), stdx::element_aligned);
 
                                             for (index_t il = 0; il < nr_actual; ++il) { // `l` for local micro-tile indices
