@@ -3,11 +3,11 @@
 namespace mx::detail {
 
 enum class GemmAlgorithm {
-    Cyclic,
-    Blocked,
+    Naive,
+    Transposed,
     CacheBlocked,
-    Microtiles,
-    Vectorized
+    Microkernel,          // register blocking with micro-tiling
+    VectorizedMicrokernel // simd vectorized microkernel
 };
 
 }

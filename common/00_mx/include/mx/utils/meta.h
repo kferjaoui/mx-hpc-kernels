@@ -6,6 +6,9 @@ namespace mx {
 template <class>
 inline constexpr bool always_false_v = false;
 
+template <auto>
+inline constexpr bool always_false_value_v = false;
+
 template<typename T>
 concept Addable = requires(T a, T b) {
     { a + b } -> std::same_as<T>;
