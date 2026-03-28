@@ -17,9 +17,11 @@
 #include "mx/utils/ostream.h"
 #include "mx_gemm/gemm.h"
 
-using EigenMatrix = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
-using Layout      = mx::RowMajor;
-using Mat         = mx::Dense<double, Layout>;
+namespace { // internal linkage for convenience
+    using EigenMatrix = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+    using Layout      = mx::RowMajor;
+    using Mat         = mx::Dense<double, Layout>;
+}
 
 struct BenchStats {
     double min_s    = 0.0;
