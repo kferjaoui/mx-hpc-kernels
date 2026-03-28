@@ -10,4 +10,12 @@ enum class GemmAlgorithm {
     VectorizedMicrokernel // simd vectorized microkernel
 };
 
+enum class CudaGemmAlgorithm {
+    Naive,
+    SharedMemTiling,
+    RegisterTiling,
+    WarpTiling,
+    TensorCores
+};
+
 }

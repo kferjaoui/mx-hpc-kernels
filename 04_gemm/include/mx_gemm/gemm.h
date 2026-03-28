@@ -48,7 +48,7 @@ void gemm(const T alpha,
 
 // CUDA overload (Views)
 template<
-    detail::GemmAlgorithm gemm_algo = detail::GemmAlgorithm::VectorizedMicrokernel, 
+    detail::CudaGemmAlgorithm gemm_algo = detail::CudaGemmAlgorithm::Naive, 
     typename T, 
     class Layout = RowMajor >
 void gemm(const T alpha, 
@@ -58,8 +58,7 @@ void gemm(const T alpha,
         DenseView<T, Layout> C, 
         CUDA policy)
 {
-        // gemm_cuda<gemm_algo>(alpha, A, B, beta, C, policy.threads, policy.scheduler);
-        static_assert(always_false_value_v<gemm_algo>, "CUDA backend not implemented yet");
+        gemm_cuda<gemm_algo>(alpha, A, B, beta, C, policy);
 }
 
 // Default overload: CPU policy
