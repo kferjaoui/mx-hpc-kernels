@@ -18,6 +18,7 @@
 #include "mx/types.h"
 #include "mx/utils/policy.h"
 #include "mx_gemm/detail/device/gemm_naive.cuh"
+#include "mx_gemm/detail/device/gemm_shmem_tiling.cuh"
 #include "cuda_check.h"
 
 
@@ -306,12 +307,24 @@ int main() {
             print_result("CUDA Naive", stats, N, K, M, cublas_stats.median_s, ok);
         }
 
-        // Future kernels go here
-        // {
-        // 
-        //      TODO
-        // 
-        // }
+        // Shared memory Tiling
+        {
+            Mat C_out = C0;
+
+            auto stats = run_benchmark_gpu(WARMUP, N_ATTEMPTS, stream,
+                            [&]() {
+                                ::mx::detail::gemm_shmem_tiled(ALPHA, d_A, d_B, BETA, d_C, N, M, K, cuda_policy);
+                            },
+                            [&]() {
+                                CUDA_CHECK(cudaMemcpyAsync(d_C, d_C0, size_C, cudaMemcpyDeviceToDevice, stream));
+                            });
+
+            CUDA_CHECK(cudaMemcpyAsync(C_out.data(), d_C, size_C, cudaMemcpyDeviceToHost, stream));
+            CUDA_CHECK(cudaStreamSynchronize(stream));
+
+            const bool ok = allclose(C_out, C_ref);
+            print_result("CUDA Shared Memory Tiling", stats, N, K, M, cublas_stats.median_s, ok);
+        }
 
         // Cleanup per-case device memory
         CUDA_CHECK(cudaFree(d_A));
