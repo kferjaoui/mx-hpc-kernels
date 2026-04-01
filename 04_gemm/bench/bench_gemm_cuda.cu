@@ -19,6 +19,7 @@
 #include "mx/utils/policy.h"
 #include "mx_gemm/detail/device/gemm_naive.cuh"
 #include "mx_gemm/detail/device/gemm_shmem_tiling.cuh"
+#include "mx_gemm/detail/device/gemm_register_tiling.cuh"
 #include "cuda_check.h"
 
 
@@ -324,6 +325,25 @@ int main() {
 
             const bool ok = allclose(C_out, C_ref);
             print_result("CUDA Shared Memory Tiling", stats, N, K, M, cublas_stats.median_s, ok);
+        }
+
+        // Register Tiling
+        {
+            Mat C_out = C0;
+
+            auto stats = run_benchmark_gpu(WARMUP, N_ATTEMPTS, stream,
+                            [&]() {
+                                ::mx::detail::call_gemm_register_tiled(ALPHA, d_A, d_B, BETA, d_C, N, M, K, cuda_policy);
+                            },
+                            [&]() {
+                                CUDA_CHECK(cudaMemcpyAsync(d_C, d_C0, size_C, cudaMemcpyDeviceToDevice, stream));
+                            });
+
+            CUDA_CHECK(cudaMemcpyAsync(C_out.data(), d_C, size_C, cudaMemcpyDeviceToHost, stream));
+            CUDA_CHECK(cudaStreamSynchronize(stream));
+
+            const bool ok = allclose(C_out, C_ref);
+            print_result("CUDA Register Tiling", stats, N, K, M, cublas_stats.median_s, ok);
         }
 
         // Cleanup per-case device memory

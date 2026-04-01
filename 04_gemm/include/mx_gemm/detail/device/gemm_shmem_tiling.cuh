@@ -40,7 +40,6 @@ __global__ void gemm_shmem_tiled(const T alpha, const T* __restrict__ A, const T
 
         auto size_B_tile = actual_K_TILE*M_TILE;
         auto start_B_tile = size_A_tile;
-        auto end_B_tile = size_A_tile + size_B_tile;
         
         // load B_tile in the next (K_Tile * M_TILE) elements in row-major order
         auto offset_B_tile = (M_TILE * blockIdx.x) + start_K_TILE * M;
