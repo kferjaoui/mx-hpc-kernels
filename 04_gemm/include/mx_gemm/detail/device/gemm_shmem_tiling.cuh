@@ -6,7 +6,7 @@
 namespace mx::detail {
 
 template <typename T>
-__global__ void gemm_shmem_tile_partial(const T alpha, const T* __restrict__ A, const T* __restrict__ B,
+__global__ void gemm_shmem_tiled(const T alpha, const T* __restrict__ A, const T* __restrict__ B,
                                     const T beta, T* __restrict__ C,
                                     const size_t N, const size_t M, const size_t K,
                                     const size_t N_TILE, const size_t M_TILE, const size_t K_TILE) 
@@ -68,7 +68,7 @@ __global__ void gemm_shmem_tile_partial(const T alpha, const T* __restrict__ A, 
 }
 
 template <typename T>
-__host__ void gemm_shmem_tiled(const T alpha, const T* __restrict__ dA, const T* __restrict__ dB,
+__host__ void call_gemm_shmem_tiled(const T alpha, const T* __restrict__ dA, const T* __restrict__ dB,
                     const T beta, T* __restrict__ dC, const size_t N, const size_t M, const size_t K,
                     const CUDA& cuda_policy){
 
@@ -83,7 +83,7 @@ __host__ void gemm_shmem_tiled(const T alpha, const T* __restrict__ dA, const T*
     dim3 threadBlock(M_TILE, N_TILE, 1);
     const size_t shmemBytes = sizeof(T) * ( K_TILE * (N_TILE + M_TILE) );
 
-    gemm_shmem_tile_partial<<<grid, threadBlock, shmemBytes, stream>>>(
+    gemm_shmem_tiled<<<grid, threadBlock, shmemBytes, stream>>>(
                                 alpha, dA, dB, beta, dC, N, M, K, N_TILE, M_TILE, K_TILE);
 }
 

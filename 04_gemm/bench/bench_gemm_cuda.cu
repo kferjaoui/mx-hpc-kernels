@@ -313,7 +313,7 @@ int main() {
 
             auto stats = run_benchmark_gpu(WARMUP, N_ATTEMPTS, stream,
                             [&]() {
-                                ::mx::detail::gemm_shmem_tiled(ALPHA, d_A, d_B, BETA, d_C, N, M, K, cuda_policy);
+                                ::mx::detail::call_gemm_shmem_tiled(ALPHA, d_A, d_B, BETA, d_C, N, M, K, cuda_policy);
                             },
                             [&]() {
                                 CUDA_CHECK(cudaMemcpyAsync(d_C, d_C0, size_C, cudaMemcpyDeviceToDevice, stream));
