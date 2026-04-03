@@ -14,6 +14,7 @@ enum class CudaGemmAlgorithm {
     Naive,
     SharedMemTiling,
     RegisterTiling,
+    RegisterTilingVectorized,
     WarpTiling,
     TensorCores
 };

@@ -14,6 +14,7 @@
 
 #include "mx/dense.h"
 #include "mx/dense_view.h"
+#include "mx/transpose.h"
 #include "mx/layout.h"
 #include "mx/types.h"
 #include "mx/utils/policy.h"
@@ -333,7 +334,7 @@ int main() {
 
             auto stats = run_benchmark_gpu(WARMUP, N_ATTEMPTS, stream,
                             [&]() {
-                                ::mx::detail::call_gemm_register_tiled(ALPHA, d_A, d_B, BETA, d_C, N, M, K, cuda_policy);
+                                ::mx::detail::call_gemm_register_tiled<float, mx::detail::CudaGemmAlgorithm::RegisterTiling>(ALPHA, d_A, d_B, BETA, d_C, N, M, K, cuda_policy);
                             },
                             [&]() {
                                 CUDA_CHECK(cudaMemcpyAsync(d_C, d_C0, size_C, cudaMemcpyDeviceToDevice, stream));
@@ -344,6 +345,35 @@ int main() {
 
             const bool ok = allclose(C_out, C_ref);
             print_result("CUDA Register Tiling", stats, N, K, M, cublas_stats.median_s, ok);
+        }
+
+        // Vectorized Register Tiling
+        if(K % 4 == 0){ // 4 here represents sizeof(float4) / sizeof(float)
+            Mat C_out = C0;
+
+            Mat BT(M, K);
+            transpose_matrix_tiled(B, BT);
+
+            float* d_BT;
+            CUDA_CHECK(cudaMalloc(&d_BT, size_B));
+            CUDA_CHECK(cudaMemcpyAsync(d_BT, BT.data(), size_B, cudaMemcpyHostToDevice, stream));
+
+            auto stats = run_benchmark_gpu(WARMUP, N_ATTEMPTS, stream,
+                            [&]() {
+                                ::mx::detail::call_gemm_register_tiled<float, ::mx::detail::CudaGemmAlgorithm::RegisterTilingVectorized>(
+                                                        ALPHA, d_A, d_BT, BETA, d_C, N, M, K, cuda_policy);
+                            },
+                            [&]() {
+                                CUDA_CHECK(cudaMemcpyAsync(d_C, d_C0, size_C, cudaMemcpyDeviceToDevice, stream));
+                            });
+
+            CUDA_CHECK(cudaMemcpyAsync(C_out.data(), d_C, size_C, cudaMemcpyDeviceToHost, stream));
+            CUDA_CHECK(cudaStreamSynchronize(stream));
+
+            const bool ok = allclose(C_out, C_ref);
+            print_result("CUDA Register Tiling Vectorized", stats, N, K, M, cublas_stats.median_s, ok);
+
+            CUDA_CHECK(cudaFree(d_BT));
         }
 
         // Cleanup per-case device memory
