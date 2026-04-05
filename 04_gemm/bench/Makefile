@@ -10,7 +10,7 @@ LDLIBS    := -pthread -lopenblas
 CUDALBS   := -lcublas
 
 ARCH = -arch=sm_89 
-NVCCFLAGS := -Xptxas=-v $(STD) $(ARCH) --expt-relaxed-constexpr # -rdc=true
+NVCCFLAGS := -Xptxas=-v -lineinfo $(STD) $(ARCH) --expt-relaxed-constexpr #-rdc=true
 NVCC_DEPFLAGS := -MMD -MP
 
 ROOT           := ../..

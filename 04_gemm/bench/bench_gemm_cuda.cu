@@ -167,7 +167,7 @@ void print_result(const char* label,
                   bool ok)
 {
     if (!ok) {
-        std::printf("[%-30s] : \033[31m MISMATCH vs cuBLAS reference\033[0m\n", label);
+        std::printf("[%-31s] : \033[31m MISMATCH vs cuBLAS reference\033[0m\n", label);
         return;
     }
 
@@ -176,7 +176,7 @@ void print_result(const char* label,
     const double perf      = gflops(N, K, M, stats.median_s);
     const double speedup   = baseline_median_s / stats.median_s;
 
-    std::printf("[%-30s] : median %9.3f ms | min %9.3f ms | %8.2f GF/s | x %6.2f\n",
+    std::printf("[%-31s] : median %9.3f ms | min %9.3f ms | %8.2f GF/s | x %6.2f\n",
                 label, median_ms, min_ms, perf, speedup);
 }
 
@@ -348,7 +348,10 @@ int main() {
         }
 
         // Vectorized Register Tiling
-        if(K % 4 == 0){ // 4 here represents sizeof(float4) / sizeof(float)
+        constexpr std::size_t K_TILE = 16;
+        constexpr std::size_t VEC_WIDTH = sizeof(float4) / sizeof(float);
+
+        if ((K % K_TILE == 0) && (K % VEC_WIDTH == 0)) {
             Mat C_out = C0;
 
             Mat BT(M, K);
@@ -360,7 +363,8 @@ int main() {
 
             auto stats = run_benchmark_gpu(WARMUP, N_ATTEMPTS, stream,
                             [&]() {
-                                ::mx::detail::call_gemm_register_tiled<float, ::mx::detail::CudaGemmAlgorithm::RegisterTilingVectorized>(
+                                ::mx::detail::call_gemm_register_tiled<float, 
+                                                                    ::mx::detail::CudaGemmAlgorithm::RegisterTilingVectorized>(
                                                         ALPHA, d_A, d_BT, BETA, d_C, N, M, K, cuda_policy);
                             },
                             [&]() {
